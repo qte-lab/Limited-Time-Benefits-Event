@@ -91,6 +91,8 @@ private fun RenderNode(
         HorizontalRule -> RenderHorizontalRule()
         is Table -> RenderTable(node, onLinkClick, context)
         is ListItem -> RenderListItem(node, onLinkClick, context)
+        is MathFormula -> RenderMathFormula(node.formula, node.isBlock)
+        is ChemicalFormula -> RenderChemicalFormula(node.formula)
     }
 }
 
@@ -125,110 +127,158 @@ private fun RenderParagraph(
     onLinkClick: (String) -> Unit,
     context: Context
 ) {
-    Column(modifier = Modifier.fillMaxWidth()) {
-        // Collect consecutive text nodes, merge them into a single Text component
-        val textNodes = mutableListOf<MarkdownNode>()
-        
-        @Composable
-        fun renderTextNodesIfAny() {
-            if (textNodes.isNotEmpty()) {
-                val annotatedString = buildAnnotatedString {
-                    textNodes.forEach { node ->
-                        when (node) {
-                            is TextNode -> {
-                                val spanStyle = when (node.style) {
-                                    TextStyle.BOLD -> SpanStyle(
-                                        fontWeight = FontWeight.Bold,
-                                        color = MiuixTheme.colorScheme.onSurface
-                                    )
-                                    TextStyle.ITALIC -> SpanStyle(
-                                        fontStyle = FontStyle.Italic,
-                                        color = MiuixTheme.colorScheme.onSurface
-                                    )
-                                    TextStyle.BOLD_ITALIC -> SpanStyle(
-                                        fontWeight = FontWeight.Bold,
-                                        fontStyle = FontStyle.Italic,
-                                        color = MiuixTheme.colorScheme.onSurface
-                                    )
-                                    TextStyle.CODE -> SpanStyle(
-                                        fontFamily = FontFamily.Monospace,
-                                        background = MiuixTheme.colorScheme.surfaceVariant,
-                                        color = MiuixTheme.colorScheme.onSurface
-                                    )
-                                    TextStyle.STRIKETHROUGH -> SpanStyle(
-                                        textDecoration = TextDecoration.LineThrough,
-                                        color = MiuixTheme.colorScheme.onSurface
-                                    )
-                                    TextStyle.UNDERLINE -> SpanStyle(
-                                        textDecoration = TextDecoration.Underline,
-                                        color = MiuixTheme.colorScheme.onSurface
-                                    )
-                                    else -> SpanStyle(
-                                        color = MiuixTheme.colorScheme.onSurface
-                                    )
+    // Build segments of inline content (text + formulas mixed together)
+    val segments = remember(paragraph.children) {
+        buildInlineSegments(paragraph.children)
+    }
+
+    // Use FlowRow for proper inline layout
+    androidx.compose.foundation.layout.FlowRow(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.Start,
+        verticalArrangement = Arrangement.Top
+    ) {
+        segments.forEach { segment ->
+            when (segment) {
+                is InlineSegment.Text -> {
+                    val annotatedString = buildAnnotatedString {
+                        segment.nodes.forEach { node ->
+                            when (node) {
+                                is TextNode -> {
+                                    val spanStyle = when (node.style) {
+                                        TextStyle.BOLD -> SpanStyle(
+                                            fontWeight = FontWeight.Bold,
+                                            color = MiuixTheme.colorScheme.onSurface
+                                        )
+                                        TextStyle.ITALIC -> SpanStyle(
+                                            fontStyle = FontStyle.Italic,
+                                            color = MiuixTheme.colorScheme.onSurface
+                                        )
+                                        TextStyle.BOLD_ITALIC -> SpanStyle(
+                                            fontWeight = FontWeight.Bold,
+                                            fontStyle = FontStyle.Italic,
+                                            color = MiuixTheme.colorScheme.onSurface
+                                        )
+                                        TextStyle.CODE -> SpanStyle(
+                                            fontFamily = FontFamily.Monospace,
+                                            background = MiuixTheme.colorScheme.surfaceVariant,
+                                            color = MiuixTheme.colorScheme.onSurface
+                                        )
+                                        TextStyle.STRIKETHROUGH -> SpanStyle(
+                                            textDecoration = TextDecoration.LineThrough,
+                                            color = MiuixTheme.colorScheme.onSurface
+                                        )
+                                        TextStyle.UNDERLINE -> SpanStyle(
+                                            textDecoration = TextDecoration.Underline,
+                                            color = MiuixTheme.colorScheme.onSurface
+                                        )
+                                        else -> SpanStyle(
+                                            color = MiuixTheme.colorScheme.onSurface
+                                        )
+                                    }
+                                    withStyle(style = spanStyle) {
+                                        append(node.text)
+                                    }
                                 }
-                                withStyle(style = spanStyle) {
-                                    append(node.text)
-                                }
-                            }
-                            is Link -> {
-                                withLink(
-                                    LinkAnnotation.Url(
-                                        node.url,
-                                        TextLinkStyles(style = SpanStyle(
-                                            color = MiuixTheme.colorScheme.primary,
-                                            textDecoration = TextDecoration.Underline
-                                        )),
-                                        linkInteractionListener = {
-                                            onLinkClick(node.url)
-                                        }
-                                    )
-                                ) {
-                                    node.children.forEach { linkChild ->
-                                        if (linkChild is TextNode) {
-                                            append(linkChild.text)
+                                is Link -> {
+                                    withLink(
+                                        LinkAnnotation.Url(
+                                            node.url,
+                                            TextLinkStyles(style = SpanStyle(
+                                                color = MiuixTheme.colorScheme.primary,
+                                                textDecoration = TextDecoration.Underline
+                                            )),
+                                            linkInteractionListener = {
+                                                onLinkClick(node.url)
+                                            }
+                                        )
+                                    ) {
+                                        node.children.forEach { linkChild ->
+                                            if (linkChild is TextNode) {
+                                                append(linkChild.text)
+                                            }
                                         }
                                     }
                                 }
-                            }
-                            else -> {
-                                // Ignore other types of nodes, they should be handled by dedicated render functions
+                                else -> {}
                             }
                         }
                     }
+                    Text(
+                        text = annotatedString,
+                        style = MiuixTheme.textStyles.main
+                    )
                 }
-                
-                Text(
-                    text = annotatedString,
-                    style = MiuixTheme.textStyles.main
-                )
-                textNodes.clear()
-            }
-        }
-        
-        paragraph.children.forEach { child ->
-            when (child) {
-                is TextNode, is Link -> {
-                    // If it's a text node or link, add it to the text nodes list
-                    textNodes.add(child)
+                is InlineSegment.Math -> {
+                    if (segment.isBlock) {
+                        Box(modifier = Modifier.fillMaxWidth()) {
+                            RenderMathFormula(segment.formula, true)
+                        }
+                    } else {
+                        RenderMathFormula(segment.formula, false)
+                    }
                 }
-                is Image -> {
-                    // If it's an image node, first render the collected text nodes
-                    renderTextNodesIfAny()
-                    // Then render the image
-                    RenderImage(child, context)
+                is InlineSegment.Chemical -> {
+                    RenderChemicalFormula(segment.formula)
                 }
-                else -> {
-                    // Handle other types of nodes
-                    renderTextNodesIfAny()
-                    RenderNode(child, onLinkClick, context)
+                is InlineSegment.Image -> {
+                    RenderImage(segment.image, context)
+                }
+                is InlineSegment.Other -> {
+                    RenderNode(segment.node, onLinkClick, context)
                 }
             }
         }
-        
-        // Render remaining text nodes
-        renderTextNodesIfAny()
     }
+}
+
+// Sealed class for inline segments
+private sealed class InlineSegment {
+    data class Text(val nodes: List<MarkdownNode>) : InlineSegment()
+    data class Math(val formula: String, val isBlock: Boolean) : InlineSegment()
+    data class Chemical(val formula: String) : InlineSegment()
+    data class Image(val image: com.chronie.gift.ui.markdown.Image) : InlineSegment()
+    data class Other(val node: MarkdownNode) : InlineSegment()
+}
+
+// Build inline segments from paragraph children
+private fun buildInlineSegments(children: List<MarkdownNode>): List<InlineSegment> {
+    val segments = mutableListOf<InlineSegment>()
+    var currentTextNodes = mutableListOf<MarkdownNode>()
+
+    fun flushTextNodes() {
+        if (currentTextNodes.isNotEmpty()) {
+            segments.add(InlineSegment.Text(currentTextNodes.toList()))
+            currentTextNodes.clear()
+        }
+    }
+
+    children.forEach { child ->
+        when (child) {
+            is TextNode, is Link -> {
+                currentTextNodes.add(child)
+            }
+            is MathFormula -> {
+                flushTextNodes()
+                segments.add(InlineSegment.Math(child.formula, child.isBlock))
+            }
+            is ChemicalFormula -> {
+                flushTextNodes()
+                segments.add(InlineSegment.Chemical(child.formula))
+            }
+            is com.chronie.gift.ui.markdown.Image -> {
+                flushTextNodes()
+                segments.add(InlineSegment.Image(child))
+            }
+            else -> {
+                flushTextNodes()
+                segments.add(InlineSegment.Other(child))
+            }
+        }
+    }
+
+    flushTextNodes()
+    return segments
 }
 
 // Render heading
@@ -247,17 +297,68 @@ private fun RenderHeading(
         6 -> 14.sp
         else -> 16.sp
     }
-    
+
     val fontWeight = FontWeight.Bold
-    
-    Column(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)
-    ) {
-        val annotatedString = buildAnnotatedString {
+
+    // Check if heading contains math or chemical formulas
+    val hasFormula = heading.children.any { it is MathFormula || it is ChemicalFormula }
+
+    if (hasFormula) {
+        // Use Row-based layout for headings with formulas
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
             heading.children.forEach { child ->
                 when (child) {
                     is TextNode -> {
-                        withStyle(style = SpanStyle(
+                        Text(
+                            text = child.text,
+                            fontSize = fontSize,
+                            fontWeight = fontWeight,
+                            color = MiuixTheme.colorScheme.onSurface,
+                            textDecoration = when (child.style) {
+                                TextStyle.STRIKETHROUGH -> TextDecoration.LineThrough
+                                TextStyle.UNDERLINE -> TextDecoration.Underline
+                                else -> TextDecoration.None
+                            }
+                        )
+                    }
+                    is Link -> {
+                        val linkText = child.children.filterIsInstance<TextNode>().joinToString("") { it.text }
+                        Text(
+                            text = linkText,
+                            fontSize = fontSize,
+                            fontWeight = fontWeight,
+                            color = MiuixTheme.colorScheme.primary,
+                            textDecoration = TextDecoration.Underline,
+                            modifier = Modifier.clickable { onLinkClick(child.url) }
+                        )
+                    }
+                    is MathFormula -> {
+                        if (!child.isBlock) {
+                            RenderMathFormula(child.formula, false)
+                        }
+                    }
+                    is ChemicalFormula -> {
+                        RenderChemicalFormula(child.formula)
+                    }
+                    else -> {}
+                }
+            }
+        }
+    } else {
+        // Original implementation for headings without formulas
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)
+        ) {
+            val annotatedString = buildAnnotatedString {
+                heading.children.forEach { child ->
+                    when (child) {
+                        is TextNode -> {
+                            withStyle(style = SpanStyle(
                                 fontSize = fontSize,
                                 fontWeight = fontWeight,
                                 color = MiuixTheme.colorScheme.onSurface,
@@ -269,51 +370,51 @@ private fun RenderHeading(
                             )) {
                                 append(child.text)
                             }
-                    }
-                    is Link -> {
-                        withLink(
-                            LinkAnnotation.Url(
-                                child.url,
-                                TextLinkStyles(style = SpanStyle(
-                                    fontSize = fontSize,
-                                    fontWeight = fontWeight,
-                                    color = MiuixTheme.colorScheme.primary,
-                                    textDecoration = TextDecoration.Underline
-                                )),
-                                linkInteractionListener = {
-                                    onLinkClick(child.url)
-                                }
-                            )
-                        ) {
-                            child.children.forEach { linkChild ->
-                                if (linkChild is TextNode) {
-                                    append(linkChild.text)
+                        }
+                        is Link -> {
+                            withLink(
+                                LinkAnnotation.Url(
+                                    child.url,
+                                    TextLinkStyles(style = SpanStyle(
+                                        fontSize = fontSize,
+                                        fontWeight = fontWeight,
+                                        color = MiuixTheme.colorScheme.primary,
+                                        textDecoration = TextDecoration.Underline
+                                    )),
+                                    linkInteractionListener = {
+                                        onLinkClick(child.url)
+                                    }
+                                )
+                            ) {
+                                child.children.forEach { linkChild ->
+                                    if (linkChild is TextNode) {
+                                        append(linkChild.text)
+                                    }
                                 }
                             }
                         }
-                    }
-                    else -> {
-                        // Handle other types of nodes
-                        // Styles like Bold, Italic, Code are represented through the style attribute of TextNode, not as independent node types.
+                        else -> {
+                            // Handle other types of nodes
+                        }
                     }
                 }
             }
+
+            val headingStyle = when (heading.level) {
+                1 -> MiuixTheme.textStyles.headline1
+                2 -> MiuixTheme.textStyles.headline1
+                3 -> MiuixTheme.textStyles.subtitle
+                4 -> MiuixTheme.textStyles.main
+                5 -> MiuixTheme.textStyles.main
+                6 -> MiuixTheme.textStyles.body2
+                else -> MiuixTheme.textStyles.main
+            }
+
+            Text(
+                text = annotatedString,
+                style = headingStyle
+            )
         }
-        
-        val headingStyle = when (heading.level) {
-            1 -> MiuixTheme.textStyles.headline1
-            2 -> MiuixTheme.textStyles.headline1
-            3 -> MiuixTheme.textStyles.subtitle
-            4 -> MiuixTheme.textStyles.main
-            5 -> MiuixTheme.textStyles.main
-            6 -> MiuixTheme.textStyles.body2
-            else -> MiuixTheme.textStyles.main
-        }
-        
-        Text(
-            text = annotatedString,
-            style = headingStyle
-        )
     }
 }
 

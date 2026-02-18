@@ -58,6 +58,12 @@ object HorizontalRule : MarkdownNode
 // Table node
 class Table(val headers: List<MarkdownNode>, val rows: List<List<MarkdownNode>>) : MarkdownNode
 
+// Math formula node (inline: \( ... \) or $ ... $, block: \[ ... \] or $$ ... $$)
+class MathFormula(val formula: String, val isBlock: Boolean = false) : MarkdownNode
+
+// Chemical formula node
+class ChemicalFormula(val formula: String) : MarkdownNode
+
 // Markdown parser class
 class MarkdownParser {
     // Parse full Markdown document (block-level elements)
@@ -204,12 +210,61 @@ class MarkdownParser {
         var remaining = text
         while (remaining.isNotEmpty()) {
             when {
-                // Parse escape character \char
-                remaining.startsWith("\\") && remaining.length > 1 -> {
-                    // Escape next character, treat as plain text
-                    val escapedChar = remaining[1]
-                    nodes.add(TextNode(escapedChar.toString()))
-                    remaining = remaining.substring(2)
+                // Parse inline math formula \( ... \)
+                remaining.startsWith("\\(") -> {
+                    val end = remaining.indexOf("\\)", 2)
+                    if (end != -1) {
+                        val formula = remaining.substring(2, end)
+                        nodes.add(MathFormula(formula.trim(), isBlock = false))
+                        remaining = remaining.substring(end + 2)
+                    } else {
+                        nodes.add(TextNode("\\("))
+                        remaining = remaining.substring(2)
+                    }
+                }
+                // Parse block math formula \[ ... \]
+                remaining.startsWith("\\[") -> {
+                    val end = remaining.indexOf("\\]", 2)
+                    if (end != -1) {
+                        val formula = remaining.substring(2, end)
+                        nodes.add(MathFormula(formula.trim(), isBlock = true))
+                        remaining = remaining.substring(end + 2)
+                    } else {
+                        nodes.add(TextNode("\\["))
+                        remaining = remaining.substring(2)
+                    }
+                }
+                // Parse block math formula $$...$$
+                remaining.startsWith("$$") -> {
+                    val end = remaining.indexOf("$$", 2)
+                    if (end != -1) {
+                        val formula = remaining.substring(2, end)
+                        nodes.add(MathFormula(formula.trim(), isBlock = true))
+                        remaining = remaining.substring(end + 2)
+                    } else {
+                        nodes.add(TextNode("$$"))
+                        remaining = remaining.substring(2)
+                    }
+                }
+                // Parse inline math formula $...$ (must have content between $ and not be a number)
+                remaining.startsWith("$") -> {
+                    val end = remaining.indexOf('$', 1)
+                    if (end != -1 && end > 1) {
+                        val formula = remaining.substring(1, end).trim()
+                        // Only treat as formula if it looks like math (contains letters, operators, etc.)
+                        // Skip if it's just a number or empty
+                        if (formula.isNotEmpty() && !formula.matches(Regex("^\\d+(\\.\\d+)?$"))) {
+                            nodes.add(MathFormula(formula, isBlock = false))
+                            remaining = remaining.substring(end + 1)
+                        } else {
+                            // Treat as plain text
+                            nodes.add(TextNode(remaining.substring(0, end + 1)))
+                            remaining = remaining.substring(end + 1)
+                        }
+                    } else {
+                        nodes.add(TextNode("$"))
+                        remaining = remaining.substring(1)
+                    }
                 }
                 // Parse image ![alt](url) or ![alt](url "title")
                 remaining.startsWith("!") && remaining.length > 1 && remaining[1] == '[' -> {
@@ -360,37 +415,16 @@ class MarkdownParser {
                         remaining = remaining.substring(1)
                     }
                 }
-                // Parse auto link <url> or <email>
-                remaining.startsWith("<") -> {
-                    val end = remaining.indexOf('>', 1)
-                    if (end != -1) {
-                        val content = remaining.substring(1, end)
-                        // Validate if it's a valid URL format (simple validation)
-                        val urlRegex = Regex("^(https?|ftp):\\/\\/[\\w\\-_]+(\\.[\\w\\-_]+)+([\\w\\-\\.,@?^=%&:/~\\+#]*[\\w\\-\\@?^=%&/~\\+#])?$", RegexOption.IGNORE_CASE)
-                        // Validate if it's a valid email format (simple validation)
-                        val emailRegex = Regex("^[\\w\\-.]+@[\\w\\-]+(\\.[\\w\\-]+)+$", RegexOption.IGNORE_CASE)
-                        
-                        if (urlRegex.matches(content)) {
-                            nodes.add(Link(content, listOf(TextNode(content))))
-                            remaining = remaining.substring(end + 1)
-                        } else if (emailRegex.matches(content)) {
-                            // Case with valid email format, create mailto link
-                            nodes.add(Link("mailto:$content", listOf(TextNode(content))))
-                            remaining = remaining.substring(end + 1)
-                        } else {
-                            // Case without valid URL or email format, treat as plain text
-                            nodes.add(TextNode("<"))
-                            remaining = remaining.substring(1)
-                        }
-                    } else {
-                        // Case without matching closing delimiter, treat as plain text
-                        nodes.add(TextNode("<"))
-                        remaining = remaining.substring(1)
-                    }
+                // Parse escape character \char
+                remaining.startsWith("\\") && remaining.length > 1 -> {
+                    // Escape next character, treat as plain text
+                    val escapedChar = remaining[1]
+                    nodes.add(TextNode(escapedChar.toString()))
+                    remaining = remaining.substring(2)
                 }
                 // Parse plain text, collect until next special character
                 else -> {
-                    val nextSpecial = remaining.indexOfAny(charArrayOf('[', '*', '`', '<'))
+                    val nextSpecial = remaining.indexOfAny(charArrayOf('[', '*', '`', '<', '$', '\\'))
                     if (nextSpecial == -1) {
                         nodes.add(TextNode(remaining))
                         remaining = ""
