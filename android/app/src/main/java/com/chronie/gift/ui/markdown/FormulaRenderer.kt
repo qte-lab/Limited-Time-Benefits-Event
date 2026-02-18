@@ -57,20 +57,15 @@ fun RenderMathFormula(formula: String, isBlock: Boolean = false) {
             )
         }
     } else {
-        // Inline formula - align with text baseline
-        Box(
-            modifier = Modifier.wrapContentHeight(),
-            contentAlignment = androidx.compose.ui.Alignment.Center
-        ) {
-            Text(
-                text = processedFormula,
-                fontSize = fontSize,
-                color = textColor,
-                fontFamily = LatinModernMathFontFamily,
-                softWrap = false,
-                modifier = Modifier.wrapContentWidth()
-            )
-        }
+        // Inline formula - use Text directly without Box wrapper for better baseline alignment
+        Text(
+            text = processedFormula,
+            fontSize = fontSize,
+            color = textColor,
+            fontFamily = LatinModernMathFontFamily,
+            softWrap = false,
+            modifier = Modifier.wrapContentWidth()
+        )
     }
 }
 
@@ -82,19 +77,15 @@ fun RenderChemicalFormula(formula: String) {
     val textColor = MiuixTheme.colorScheme.onSurface
     val processedFormula = preprocessChemicalFormula(formula)
 
-    Box(
-        modifier = Modifier.wrapContentHeight(),
-        contentAlignment = androidx.compose.ui.Alignment.Center
-    ) {
-        Text(
-            text = processedFormula,
-            fontSize = 16.sp,
-            color = textColor,
-            fontFamily = LatinModernMathFontFamily,
-            softWrap = false,
-            modifier = Modifier.wrapContentWidth()
-        )
-    }
+    // Use Text directly without Box wrapper for better baseline alignment
+    Text(
+        text = processedFormula,
+        fontSize = 16.sp,
+        color = textColor,
+        fontFamily = LatinModernMathFontFamily,
+        softWrap = false,
+        modifier = Modifier.wrapContentWidth()
+    )
 }
 
 /**
@@ -672,7 +663,8 @@ private fun handleSqrt(formula: String): String {
 
                     val before = result.substring(0, startIndex)
                     val after = result.substring(afterContent)
-                    result = before + "${rootSub}√(${processedContent})" + after
+                    // Use combining overline after the content for better visual
+                    result = before + "${rootSub}√${processedContent}̄" + after
                     continueProcessing = true
                 }
             }
@@ -697,8 +689,8 @@ private fun handleSqrt(formula: String): String {
                 val processedContent = preprocessMathFormula(content)
                 val before = result.substring(0, startIndex)
                 val after = result.substring(afterContent)
-                // Use square root symbol with combining overline for better appearance
-                result = before + "√(${processedContent})" + after
+                // Use square root symbol with combining overline (U+0305) for better appearance
+                result = before + "√${processedContent}̄" + after
                 continueProcessing = true
             }
         }

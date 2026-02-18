@@ -35,36 +35,43 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import android.content.Context
 import android.media.MediaPlayer
 import android.net.Uri
 import android.widget.MediaController
 import android.widget.VideoView
+import android.widget.Toast
+import androidx.compose.foundation.text.selection.SelectionContainer
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import coil3.size.Scale
 import com.chronie.gift.R
 import com.chronie.gift.ui.markdown.LatinModernMathFontFamily
 
-// Markdown renderer component
+// Markdown renderer component with text selection support
 @Composable
 fun MarkdownRenderer(markdown: String) {
     val parser = remember { MarkdownParser() }
     val nodes by remember(markdown) { mutableStateOf(parser.parse(markdown)) }
     val uriHandler = LocalUriHandler.current
     val context = LocalContext.current
-    
-    LazyColumn(
-        modifier = Modifier.fillMaxWidth().padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        nodes.forEach { node ->
-            item {
-                RenderNode(
-                    node = node,
-                    onLinkClick = { url -> uriHandler.openUri(url) },
-                    context = context
-                )
+
+    // Wrap entire content in SelectionContainer to enable text selection
+    SelectionContainer {
+        LazyColumn(
+            modifier = Modifier.fillMaxWidth().padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            nodes.forEach { node ->
+                item {
+                    RenderNode(
+                        node = node,
+                        onLinkClick = { url -> uriHandler.openUri(url) },
+                        context = context
+                    )
+                }
             }
         }
     }
