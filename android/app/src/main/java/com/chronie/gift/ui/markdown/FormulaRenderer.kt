@@ -101,7 +101,7 @@ fun RenderChemicalFormula(formula: String) {
  * Preprocess math formula: convert LaTeX commands to Unicode characters
  * and handle subscripts/superscripts
  */
-private fun preprocessMathFormula(formula: String): String {
+internal fun preprocessMathFormula(formula: String): String {
     var result = formula
 
     // Replace Greek letters and symbols
@@ -427,7 +427,7 @@ private fun preprocessMathFormula(formula: String): String {
 /**
  * Preprocess chemical formula: handle subscripts
  */
-private fun preprocessChemicalFormula(formula: String): String {
+internal fun preprocessChemicalFormula(formula: String): String {
     var result = formula
 
     // Handle subscripts: _{...} or _x
@@ -464,10 +464,17 @@ private fun handleFractions(formula: String): String {
                 // Extract second argument (denominator) with balanced braces
                 val (denominator, afterDenominator) = extractBalancedBraces(result, afterNumerator)
                 if (denominator != null) {
+                    // Process numerator and denominator recursively
+                    val processedNum = preprocessMathFormula(numerator)
+                    val processedDen = preprocessMathFormula(denominator)
+
+                    // Try to convert to Unicode fraction if possible
+                    val unicodeFraction = tryConvertToUnicodeFraction(processedNum, processedDen)
+
                     // Replace this fraction
                     val before = result.substring(0, startIndex)
                     val after = result.substring(afterDenominator)
-                    result = before + "($numerator/$denominator)" + after
+                    result = before + unicodeFraction + after
                     continueProcessing = true
                 }
             }
@@ -475,6 +482,123 @@ private fun handleFractions(formula: String): String {
     }
 
     return result
+}
+
+/**
+ * Try to convert simple fractions to Unicode fractions
+ * Otherwise return formatted fraction with vinculum (horizontal bar)
+ */
+private fun tryConvertToUnicodeFraction(numerator: String, denominator: String): String {
+    // Try simple number fractions
+    val numInt = numerator.trim().toIntOrNull()
+    val denInt = denominator.trim().toIntOrNull()
+
+    if (numInt != null && denInt != null) {
+        // Common Unicode fractions
+        when (numInt to denInt) {
+            1 to 2 -> return "½"
+            1 to 3 -> return "⅓"
+            2 to 3 -> return "⅔"
+            1 to 4 -> return "¼"
+            3 to 4 -> return "¾"
+            1 to 5 -> return "⅕"
+            2 to 5 -> return "⅖"
+            3 to 5 -> return "⅗"
+            4 to 5 -> return "⅘"
+            1 to 6 -> return "⅙"
+            5 to 6 -> return "⅚"
+            1 to 8 -> return "⅛"
+            3 to 8 -> return "⅜"
+            5 to 8 -> return "⅝"
+            7 to 8 -> return "⅞"
+            1 to 9 -> return "⅑"
+            1 to 10 -> return "⅒"
+        }
+    }
+
+    // For complex fractions, use superscript/subscript with fraction slash
+    val numSuper = numerator.map { char ->
+        when (char) {
+            '0' -> '⁰'
+            '1' -> '¹'
+            '2' -> '²'
+            '3' -> '³'
+            '4' -> '⁴'
+            '5' -> '⁵'
+            '6' -> '⁶'
+            '7' -> '⁷'
+            '8' -> '⁸'
+            '9' -> '⁹'
+            '+' -> '⁺'
+            '-' -> '⁻'
+            '(' -> '⁽'
+            ')' -> '⁾'
+            'a' -> 'ᵃ'
+            'b' -> 'ᵇ'
+            'c' -> 'ᶜ'
+            'd' -> 'ᵈ'
+            'e' -> 'ᵉ'
+            'f' -> 'ᶠ'
+            'g' -> 'ᵍ'
+            'h' -> 'ʰ'
+            'i' -> 'ⁱ'
+            'j' -> 'ʲ'
+            'k' -> 'ᵏ'
+            'l' -> 'ˡ'
+            'm' -> 'ᵐ'
+            'n' -> 'ⁿ'
+            'o' -> 'ᵒ'
+            'p' -> 'ᵖ'
+            'r' -> 'ʳ'
+            's' -> 'ˢ'
+            't' -> 'ᵗ'
+            'u' -> 'ᵘ'
+            'v' -> 'ᵛ'
+            'w' -> 'ʷ'
+            'x' -> 'ˣ'
+            'y' -> 'ʸ'
+            'z' -> 'ᶻ'
+            else -> char
+        }
+    }.joinToString("")
+
+    val denSub = denominator.map { char ->
+        when (char) {
+            '0' -> '₀'
+            '1' -> '₁'
+            '2' -> '₂'
+            '3' -> '₃'
+            '4' -> '₄'
+            '5' -> '₅'
+            '6' -> '₆'
+            '7' -> '₇'
+            '8' -> '₈'
+            '9' -> '₉'
+            '+' -> '₊'
+            '-' -> '₋'
+            '(' -> '₍'
+            ')' -> '₎'
+            'a' -> 'ₐ'
+            'e' -> 'ₑ'
+            'i' -> 'ᵢ'
+            'o' -> 'ₒ'
+            'u' -> 'ᵤ'
+            'v' -> 'ᵥ'
+            'x' -> 'ₓ'
+            'h' -> 'ₕ'
+            'k' -> 'ₖ'
+            'l' -> 'ₗ'
+            'm' -> 'ₘ'
+            'n' -> 'ₙ'
+            'p' -> 'ₚ'
+            's' -> 'ₛ'
+            't' -> 'ₜ'
+            else -> char
+        }
+    }.joinToString("")
+
+    // Use fraction slash (U+2044) for better appearance
+    return "$numSuper⁄$denSub"
 }
 
 /**
@@ -506,21 +630,78 @@ private fun extractBalancedBraces(text: String, startIndex: Int): Pair<String?, 
 
 private fun handleSqrt(formula: String): String {
     var result = formula
-    val sqrtRegex = Regex("\\\\sqrt\\{([^}]+)\\}")
 
-    while (sqrtRegex.containsMatchIn(result)) {
-        result = sqrtRegex.replace(result) { match ->
-            val content = match.groupValues[1]
-            "√($content)"
+    // Handle nested roots by repeatedly processing from innermost to outermost
+    var continueProcessing = true
+    while (continueProcessing) {
+        continueProcessing = false
+
+        // Find \sqrt[root]{...} with balanced braces
+        val sqrtWithRootPattern = Regex("\\\\sqrt\\[")
+        val rootMatch = sqrtWithRootPattern.find(result)
+
+        if (rootMatch != null) {
+            val startIndex = rootMatch.range.first
+            val afterSqrt = rootMatch.range.last + 1
+
+            // Extract root index
+            val rootEnd = result.indexOf(']', afterSqrt)
+            if (rootEnd != -1) {
+                val root = result.substring(afterSqrt, rootEnd)
+                val afterRoot = rootEnd + 1
+
+                // Extract content with balanced braces
+                val (content, afterContent) = extractBalancedBraces(result, afterRoot)
+                if (content != null) {
+                    val processedContent = preprocessMathFormula(content)
+                    val rootSub = root.map { char ->
+                        when (char) {
+                            '0' -> '₀'
+                            '1' -> '₁'
+                            '2' -> '₂'
+                            '3' -> '₃'
+                            '4' -> '₄'
+                            '5' -> '₅'
+                            '6' -> '₆'
+                            '7' -> '₇'
+                            '8' -> '₈'
+                            '9' -> '₉'
+                            else -> char
+                        }
+                    }.joinToString("")
+
+                    val before = result.substring(0, startIndex)
+                    val after = result.substring(afterContent)
+                    result = before + "${rootSub}√(${processedContent})" + after
+                    continueProcessing = true
+                }
+            }
         }
     }
 
-    // Handle \sqrt[root]{...}
-    val sqrtWithRootRegex = Regex("\\\\sqrt\\[(\\d+)\\]\\{([^}]+)\\}")
-    result = sqrtWithRootRegex.replace(result) { match ->
-        val root = match.groupValues[1]
-        val content = match.groupValues[2]
-        "${root}√($content)"
+    // Handle simple \sqrt{...}
+    continueProcessing = true
+    while (continueProcessing) {
+        continueProcessing = false
+
+        val sqrtPattern = Regex("\\\\sqrt\\{")
+        val match = sqrtPattern.find(result)
+
+        if (match != null) {
+            val startIndex = match.range.first
+            val afterSqrt = match.range.last + 1
+
+            // Extract content with balanced braces
+            val (content, afterContent) = extractBalancedBraces(result, afterSqrt)
+            if (content != null) {
+                val processedContent = preprocessMathFormula(content)
+                val before = result.substring(0, startIndex)
+                val after = result.substring(afterContent)
+                // Use square root symbol with combining overline for better appearance
+                result = before + "√(${processedContent})" + after
+                continueProcessing = true
+            }
+        }
     }
 
     return result
