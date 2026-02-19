@@ -31,6 +31,7 @@ import com.chronie.gift.ui.navigation.NavRoutes
 import com.chronie.gift.ui.screens.AnswersScreen
 import com.chronie.gift.ui.screens.HomeScreen
 import com.chronie.gift.R
+import com.chronie.gift.ui.screens.LicensesScreen
 import com.chronie.gift.ui.screens.SettingsScreen
 import com.chronie.gift.ui.theme.ColorSchemeMode
 import com.chronie.gift.ui.theme.GiftTheme
@@ -217,7 +218,17 @@ fun GiftApp() {
                                     checkForUpdates()
                                 }
                             },
-                            isCheckingUpdate = isCheckingUpdate
+                            isCheckingUpdate = isCheckingUpdate,
+                            onNavigateToLicenses = {
+                                navController.navigate(NavRoutes.Licenses)
+                            }
+                        )
+                    }
+                    composable(NavRoutes.Licenses) {
+                        LicensesScreen(
+                            onBack = {
+                                navController.popBackStack()
+                            }
                         )
                     }
                 }

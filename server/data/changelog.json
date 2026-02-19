@@ -1,8 +1,8 @@
 {
   "changelog": {
-    "zh-cn": "v.1.20260219.0501\n\n- 支持Markdown文档长按选取文本操作 \n- 优化Markdown文档渲染，支持数学公式",
-    "zh-tw": "v.1.20260219.0501\n\n- 支援Markdown文件長按選取文字操作 \n- 最佳化Markdown文件渲染，支援數學公式",
-    "en": "v.1.20260219.0501\n\n- Support long-press text selection in Markdown documents \n- Optimize Markdown rendering with math formula support",
-    "ja": "v.1.20260219.0501\n\n- Markdownドキュメントで長押ししてテキストを選択する操作をサポート \n- Markdownドキュメントのレンダリングを最適化し、数式をサポート"
+    "zh-cn": "v.1.20260219.2109\n\n- 新增法律合规信息页面",
+    "zh-tw": "v.1.20260219.2109\n\n- 新增法律合規資訊頁面",
+    "en": "v.1.20260219.2109\n\n- Introduce legal compliance information page",
+    "ja": "v.1.20260219.2109\n\n- 法令遵守情報ページを新規追加"
   }
 }

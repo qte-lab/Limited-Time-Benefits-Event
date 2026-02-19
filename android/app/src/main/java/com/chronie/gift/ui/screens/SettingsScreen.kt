@@ -42,7 +42,8 @@ fun SettingsScreen(
     onLanguageUpdated: (String?) -> Unit = {},
     onCheckUpdate: () -> Unit = {},
     isCheckingUpdate: Boolean = false,
-    currentLanguageCode: String? = null
+    currentLanguageCode: String? = null,
+    onNavigateToLicenses: () -> Unit = {}
 ) {
     val context = LocalContext.current
     
@@ -149,9 +150,9 @@ fun SettingsScreen(
                 }
                 
                 SmallTitle(text = stringResource(id = R.string.version_info))
-                
+
                 Card(
-                    modifier = Modifier.padding(bottom = 24.dp),
+                    modifier = Modifier.padding(bottom = 12.dp),
                     pressFeedbackType = top.yukonga.miuix.kmp.utils.PressFeedbackType.Sink,
                     showIndication = true,
                     onClick = onCheckUpdate,
@@ -168,7 +169,28 @@ fun SettingsScreen(
                         )
                     }
                 }
-                
+
+                SmallTitle(text = stringResource(id = R.string.legal_settings))
+
+                Card(
+                    modifier = Modifier.padding(bottom = 24.dp),
+                    pressFeedbackType = top.yukonga.miuix.kmp.utils.PressFeedbackType.Sink,
+                    showIndication = true,
+                    onClick = onNavigateToLicenses,
+                    insideMargin = androidx.compose.foundation.layout.PaddingValues(16.dp)
+                ) {
+                    Box(
+                        modifier = Modifier.fillMaxWidth(),
+                        contentAlignment = androidx.compose.ui.Alignment.Center
+                    ) {
+                        Text(
+                            text = stringResource(id = R.string.open_source_licenses),
+                            style = MiuixTheme.textStyles.body1,
+                            color = MiuixTheme.colorScheme.primary
+                        )
+                    }
+                }
+
                 val packageInfo = remember {
                     try {
                         context.packageManager.getPackageInfo(context.packageName, 0)

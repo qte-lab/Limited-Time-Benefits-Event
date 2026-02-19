@@ -53,4 +53,15 @@
     <string name="version_info">Version Information</string>
     <string name="update_check_manually">Check for Updates</string>
     <string name="update_no_new_version">You have the latest version</string>
+    <string name="legal_settings">Legal</string>
+    <string name="open_source_licenses">Open Source Licenses</string>
+    <string name="licenses_title">Open Source Licenses</string>
+    <string name="licenses_subtitle">Third-Party Software</string>
+    <string name="licenses_description">This application uses the following open source software. Tap on any item to view its license details.</string>
+    <string name="licenses_list_title">Licenses</string>
+    <string name="license_version">Version</string>
+    <string name="license_type">License</string>
+    <string name="back">Back</string>
+    <string name="no_browser_found">No browser found</string>
+    <string name="open_link_failed">Failed to open link</string>
 </resources>

@@ -53,4 +53,15 @@
     <string name="version_info">版本信息</string>
     <string name="update_check_manually">检查更新</string>
     <string name="update_no_new_version">当前已是最新版本</string>
+    <string name="legal_settings">法律</string>
+    <string name="open_source_licenses">开源软件许可证</string>
+    <string name="licenses_title">开源软件许可证</string>
+    <string name="licenses_subtitle">第三方软件</string>
+    <string name="licenses_description">本应用使用了以下开源软件。点击任意项目查看其许可证详情。</string>
+    <string name="licenses_list_title">许可证列表</string>
+    <string name="license_version">版本</string>
+    <string name="license_type">许可证类型</string>
+    <string name="back">返回</string>
+    <string name="no_browser_found">未找到浏览器</string>
+    <string name="open_link_failed">打开链接失败</string>
 </resources>

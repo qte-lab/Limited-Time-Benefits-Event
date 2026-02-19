@@ -53,4 +53,15 @@
     <string name="version_info">バージョン情報</string>
     <string name="update_check_manually">更新をチェック</string>
     <string name="update_no_new_version">現在最新のバージョンをお使いです</string>
+    <string name="legal_settings">法的情報</string>
+    <string name="open_source_licenses">オープンソースライセンス</string>
+    <string name="licenses_title">オープンソースライセンス</string>
+    <string name="licenses_subtitle">サードパーティソフトウェア</string>
+    <string name="licenses_description">このアプリケーションは以下のオープンソースソフトウェアを使用しています。項目をタップするとライセンスの詳細が表示されます。</string>
+    <string name="licenses_list_title">ライセンス一覧</string>
+    <string name="license_version">バージョン</string>
+    <string name="license_type">ライセンス</string>
+    <string name="back">戻る</string>
+    <string name="no_browser_found">ブラウザが見つかりません</string>
+    <string name="open_link_failed">リンクを開けませんでした</string>
 </resources>

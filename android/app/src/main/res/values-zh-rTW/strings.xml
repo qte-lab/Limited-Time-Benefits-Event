@@ -53,4 +53,15 @@
     <string name="version_info">版本信息</string>
     <string name="update_check_manually">檢查更新</string>
     <string name="update_no_new_version">當前已是最新版本</string>
+    <string name="legal_settings">法律</string>
+    <string name="open_source_licenses">開源軟件許可證</string>
+    <string name="licenses_title">開源軟件許可證</string>
+    <string name="licenses_subtitle">第三方軟件</string>
+    <string name="licenses_description">本應用使用了以下開源軟件。點擊任意項目查看其許可證詳情。</string>
+    <string name="licenses_list_title">許可證列表</string>
+    <string name="license_version">版本</string>
+    <string name="license_type">許可證類型</string>
+    <string name="back">返回</string>
+    <string name="no_browser_found">未找到瀏覽器</string>
+    <string name="open_link_failed">打開鏈接失敗</string>
 </resources>
