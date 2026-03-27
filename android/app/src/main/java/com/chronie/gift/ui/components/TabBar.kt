@@ -5,7 +5,7 @@ import androidx.compose.ui.res.stringResource
 import com.chronie.gift.R
 import top.yukonga.miuix.kmp.basic.FloatingNavigationBar
 import top.yukonga.miuix.kmp.basic.FloatingNavigationBarItem
-import top.yukonga.miuix.kmp.basic.NavigationDisplayMode
+import top.yukonga.miuix.kmp.basic.FloatingNavigationBarDisplayMode
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.HorizontalSplit
 import top.yukonga.miuix.kmp.icon.extended.ListView
@@ -37,7 +37,7 @@ fun TabBar(
     val labels = tabs.map { it.third }
 
     FloatingNavigationBar(
-        mode = NavigationDisplayMode.IconOnly,
+        mode = FloatingNavigationBarDisplayMode.IconOnly,
         color = MiuixTheme.colorScheme.background.copy(alpha = 0.7f)
     ) {
         tabs.forEachIndexed { index, item ->
