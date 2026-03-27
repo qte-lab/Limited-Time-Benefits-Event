@@ -115,7 +115,7 @@ dependencies {
     // Miuix dependencies
     implementation("top.yukonga.miuix.kmp:miuix-android:0.8.8")
     // Optional: Add miuix-icons for more icons
-    implementation("top.yukonga.miuix.kmp:miuix-icons-android:0.8.3")
+    implementation("top.yukonga.miuix.kmp:miuix-icons-android:0.8.8")
     
     // No longer need Markdown rendering library, we use our own renderer
 }
