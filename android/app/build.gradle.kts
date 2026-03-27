@@ -110,7 +110,7 @@ dependencies {
     
     // Image loading library
     implementation("io.coil-kt.coil3:coil-compose:3.4.0")
-    implementation("io.coil-kt.coil3:coil-network-okhttp:3.3.0")
+    implementation("io.coil-kt.coil3:coil-network-okhttp:3.4.0")
     
     // Miuix dependencies
     implementation("top.yukonga.miuix.kmp:miuix-android:0.8.8")
