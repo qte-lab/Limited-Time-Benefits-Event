@@ -113,7 +113,7 @@ dependencies {
     implementation("io.coil-kt.coil3:coil-network-okhttp:3.3.0")
     
     // Miuix dependencies
-    implementation("top.yukonga.miuix.kmp:miuix-android:0.8.3")
+    implementation("top.yukonga.miuix.kmp:miuix-android:0.8.8")
     // Optional: Add miuix-icons for more icons
     implementation("top.yukonga.miuix.kmp:miuix-icons-android:0.8.3")
     
