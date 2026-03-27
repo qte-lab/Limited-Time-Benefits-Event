@@ -195,7 +195,6 @@ fun MainContent(paddingValues: PaddingValues) {
                             alignment = top.yukonga.miuix.kmp.basic.PopupPositionProvider.Align.BottomStart,
                             onDismissRequest = { showPopup.value = false }
                         ) {
-                            val dismiss = top.yukonga.miuix.kmp.extra.LocalWindowListPopupState.current
                             ListPopupColumn {
                                 markdownFiles.forEachIndexed { index, file ->
                                     val (itemYear, itemMonth, itemActivity) = parseFilename(file)
@@ -212,7 +211,7 @@ fun MainContent(paddingValues: PaddingValues) {
                                         isSelected = selectedIndex == index,
                                         onSelectedIndexChange = {
                                             setSelectedFile(markdownFiles[index])
-                                            dismiss()
+                                            showPopup.value = false
                                         },
                                         index = index
                                     )
