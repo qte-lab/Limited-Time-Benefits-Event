@@ -35,8 +35,9 @@ import top.yukonga.miuix.kmp.basic.TopAppBar
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.rememberTopAppBarState
 import top.yukonga.miuix.kmp.theme.MiuixTheme
+import top.yukonga.miuix.kmp.theme.LocalDismissState
 import top.yukonga.miuix.kmp.utils.PressFeedbackType
-import top.yukonga.miuix.kmp.extra.WindowDialog
+import top.yukonga.miuix.kmp.window.WindowDialog
 
 @Composable
 fun LicensesScreen(
@@ -129,10 +130,12 @@ fun LicensesScreen(
 
     if (showDialog.value && selectedLicense != null) {
         val license = selectedLicense!!
+        val dismiss = LocalDismissState.current
         WindowDialog(
             title = license.name,
-            show = showDialog,
+            show = showDialog.value,
             onDismissRequest = {
+                dismiss?.invoke()
                 showDialog.value = false
                 selectedLicense = null
             }

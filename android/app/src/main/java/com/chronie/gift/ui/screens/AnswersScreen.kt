@@ -41,7 +41,7 @@ import top.yukonga.miuix.kmp.basic.CircularProgressIndicator
 import top.yukonga.miuix.kmp.utils.PressFeedbackType
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.basic.Surface
-import top.yukonga.miuix.kmp.extra.WindowListPopup
+import top.yukonga.miuix.kmp.window.WindowListPopup
 import top.yukonga.miuix.kmp.basic.ListPopupColumn
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 
@@ -191,7 +191,7 @@ fun MainContent(paddingValues: PaddingValues) {
                         }
                         
                         WindowListPopup(
-                            show = showPopup,
+                            show = showPopup.value,
                             alignment = top.yukonga.miuix.kmp.basic.PopupPositionProvider.Align.BottomStart,
                             onDismissRequest = { showPopup.value = false }
                         ) {

@@ -39,7 +39,7 @@ val buildNumber = project.findProperty("buildNumber") as? String ?: defaultBuild
 android {
     namespace = "com.chronie.gift"
     compileSdk {
-        version = release(36)
+        version = release(37)
     }
 
     signingConfigs {
@@ -54,7 +54,7 @@ android {
     defaultConfig {
         applicationId = "com.chronie.gift"
         minSdk = 24
-        targetSdk = 36
+        targetSdk = 37
         
         // Use generated version code
         versionCode = generatedVersionCode
@@ -113,9 +113,9 @@ dependencies {
     implementation("io.coil-kt.coil3:coil-network-okhttp:3.4.0")
     
     // Miuix dependencies
-    implementation("top.yukonga.miuix.kmp:miuix-android:0.8.8")
-    // Optional: Add miuix-icons for more icons
-    implementation("top.yukonga.miuix.kmp:miuix-icons-android:0.8.8")
+    implementation(libs.miuix.ui)
+    implementation(libs.miuix.preference)
+    implementation(libs.miuix.icons)
     
     // No longer need Markdown rendering library, we use our own renderer
 }

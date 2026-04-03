@@ -17,7 +17,8 @@ import androidx.compose.ui.unit.dp
 import com.chronie.gift.R
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextButton
-import top.yukonga.miuix.kmp.extra.WindowDialog
+import top.yukonga.miuix.kmp.window.WindowDialog
+import top.yukonga.miuix.kmp.theme.LocalDismissState
 
 @Composable
 fun UpdateDialog(
@@ -28,18 +29,17 @@ fun UpdateDialog(
     onUpdate: () -> Unit,
     onDismiss: () -> Unit
 ) {
-    val showDialog = remember { mutableStateOf(show) }
+    val dismiss = LocalDismissState.current
     
-    androidx.compose.runtime.LaunchedEffect(show) {
-        showDialog.value = show
-    }
-    
-    if (showDialog.value) {
+    if (show) {
         WindowDialog(
             title = stringResource(R.string.update_dialog_title),
             summary = changelog,
-            show = showDialog,
-            onDismissRequest = onDismiss
+            show = show,
+            onDismissRequest = {
+                dismiss?.invoke()
+                onDismiss()
+            }
         ) {
             Column(
                 modifier = Modifier.fillMaxWidth(),
@@ -47,7 +47,10 @@ fun UpdateDialog(
             ) {
                 TextButton(
                     text = stringResource(R.string.update_dialog_button).format(fileSize),
-                    onClick = onUpdate,
+                    onClick = {
+                        dismiss?.invoke()
+                        onUpdate()
+                    },
                     modifier = Modifier.fillMaxWidth()
                 )
                 

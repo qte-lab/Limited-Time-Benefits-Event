@@ -6,6 +6,7 @@ import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.state.ToggleableState
 import top.yukonga.miuix.kmp.basic.Checkbox
 import top.yukonga.miuix.kmp.basic.HorizontalDivider
 import top.yukonga.miuix.kmp.basic.Text
@@ -118,8 +119,8 @@ private fun RenderListItem(
         if (listItem.checked != null) {
             // Task list item, show checkbox
             Checkbox(
-                checked = listItem.checked,
-                onCheckedChange = null, // Read-only
+                state = ToggleableState(listItem.checked),
+                onClick = null,
                 modifier = Modifier.width(24.dp).padding(top = 4.dp),
                 enabled = false
             )

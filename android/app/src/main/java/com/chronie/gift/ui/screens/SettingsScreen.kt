@@ -34,7 +34,7 @@ import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.SmallTitle
 import top.yukonga.miuix.kmp.basic.Scaffold
-import top.yukonga.miuix.kmp.extra.SuperDropdown
+import top.yukonga.miuix.kmp.preference.OverlayDropdownPreference
 
 @Composable
 fun SettingsScreen(
@@ -117,7 +117,7 @@ fun SettingsScreen(
                 Card(
                     modifier = Modifier.padding(bottom = 24.dp)
                 ) {
-                    SuperDropdown(
+                    OverlayDropdownPreference(
                         title = stringResource(id = R.string.language_settings),
                         items = languageOptions,
                         selectedIndex = selectedLanguageIndex,
@@ -135,7 +135,7 @@ fun SettingsScreen(
                 Card(
                     modifier = Modifier.padding(bottom = 24.dp)
                 ) {
-                    SuperDropdown(
+                    OverlayDropdownPreference(
                         title = stringResource(id = R.string.theme_settings),
                         items = themeOptions,
                         selectedIndex = selectedThemeIndex,
