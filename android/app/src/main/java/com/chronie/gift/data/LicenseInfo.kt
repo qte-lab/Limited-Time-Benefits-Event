@@ -78,14 +78,14 @@ END OF TERMS AND CONDITIONS
         ),
         LicenseInfo(
             name = "AndroidX Activity Compose",
-            version = "1.12.3",
+            version = "1.13.0",
             license = "Apache License 2.0",
             url = "https://developer.android.com/jetpack/androidx/releases/activity",
             licenseText = "Apache License 2.0 - See full license text above."
         ),
         LicenseInfo(
             name = "AndroidX Compose BOM",
-            version = "2026.01.01",
+            version = "2026.05.01",
             license = "Apache License 2.0",
             url = "https://developer.android.com/jetpack/androidx/releases/compose",
             licenseText = "Apache License 2.0 - See full license text above."
@@ -726,7 +726,7 @@ END OF TERMS AND CONDITIONS
         ),
         LicenseInfo(
             name = "Ktor Serialization Kotlinx JSON",
-            version = "3.4.0",
+            version = "3.5.0",
             license = "Apache License 2.0",
             url = "https://github.com/ktorio/ktor",
             licenseText = """
@@ -1353,7 +1353,7 @@ END OF TERMS AND CONDITIONS
         ),
         LicenseInfo(
             name = "Coil Network OkHttp",
-            version = "3.3.0",
+            version = "3.4.0",
             license = "Apache License 2.0",
             url = "https://github.com/coil-kt/coil",
             licenseText = """
