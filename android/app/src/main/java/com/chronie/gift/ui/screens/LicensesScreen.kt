@@ -34,6 +34,10 @@ import top.yukonga.miuix.kmp.basic.TextButton
 import top.yukonga.miuix.kmp.basic.TopAppBar
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.rememberTopAppBarState
+import top.yukonga.miuix.kmp.basic.Icon
+import top.yukonga.miuix.kmp.basic.IconButton
+import top.yukonga.miuix.kmp.icon.MiuixIcons
+import top.yukonga.miuix.kmp.icon.extended.Back
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.theme.LocalDismissState
 import top.yukonga.miuix.kmp.utils.PressFeedbackType
@@ -47,12 +51,21 @@ fun LicensesScreen(
     val uriHandler = LocalUriHandler.current
     val scrollBehavior = MiuixScrollBehavior()
     var selectedLicense by remember { mutableStateOf<com.chronie.gift.data.LicenseInfo?>(null) }
-    val showDialog = remember { mutableStateOf(false) }
+    var showDialog by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
             TopAppBar(
                 title = stringResource(id = R.string.licenses_title),
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(
+                            imageVector = MiuixIcons.Back,
+                            contentDescription = "Back",
+                            tint = MiuixTheme.colorScheme.onBackground
+                        )
+                    }
+                },
                 scrollBehavior = scrollBehavior
             )
         }
@@ -96,7 +109,7 @@ fun LicensesScreen(
                     showIndication = true,
                     onClick = {
                         selectedLicense = license
-                        showDialog.value = true
+                        showDialog = true
                     },
                     insideMargin = androidx.compose.foundation.layout.PaddingValues(16.dp)
                 ) {
@@ -128,18 +141,17 @@ fun LicensesScreen(
         }
     }
 
-    if (showDialog.value && selectedLicense != null) {
-        val license = selectedLicense!!
-        val dismiss = LocalDismissState.current
+    selectedLicense?.let { license ->
         WindowDialog(
             title = license.name,
-            show = showDialog.value,
-            onDismissRequest = {
-                dismiss?.invoke()
-                showDialog.value = false
+            show = showDialog,
+            onDismissRequest = { showDialog = false },
+            onDismissFinished = {
                 selectedLicense = null
             }
         ) {
+            val dismiss = LocalDismissState.current
+
             Column(
                 modifier = Modifier
                     .fillMaxWidth()

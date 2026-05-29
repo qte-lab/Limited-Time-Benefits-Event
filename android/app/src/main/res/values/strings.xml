@@ -5,6 +5,7 @@
     <string name="tab_home">Home</string>
     <string name="tab_answers">Answers</string>
     <string name="tab_settings">Settings</string>
+    <string name="general_settings_title">General Settings</string>
     <string name="language_settings">Language Settings</string>
     <string name="language_follow_system">System</string>
     <string name="language_zh_cn">Chinese (Simplified)</string>

@@ -5,6 +5,7 @@
     <string name="tab_home">ホーム</string>
     <string name="tab_answers">解答</string>
     <string name="tab_settings">設定</string>
+    <string name="general_settings_title">一般設定</string>
     <string name="language_settings">言語設定</string>
     <string name="language_follow_system">システム</string>
     <string name="language_zh_cn">中国語（簡体字）</string>

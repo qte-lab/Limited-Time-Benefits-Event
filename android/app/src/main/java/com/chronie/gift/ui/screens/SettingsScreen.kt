@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -24,17 +23,16 @@ import android.widget.Toast
 import com.chronie.gift.R
 import com.chronie.gift.data.LanguageManager
 import com.chronie.gift.data.ThemeManager
-import kotlinx.coroutines.launch
-import top.yukonga.miuix.kmp.theme.MiuixTheme
+import top.yukonga.miuix.kmp.basic.Icon
+import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.TopAppBar
-import top.yukonga.miuix.kmp.basic.SmallTopAppBar
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
-import top.yukonga.miuix.kmp.basic.rememberTopAppBarState
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.SmallTitle
 import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.preference.OverlayDropdownPreference
+import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 @Composable
 fun SettingsScreen(
@@ -43,7 +41,8 @@ fun SettingsScreen(
     onCheckUpdate: () -> Unit = {},
     isCheckingUpdate: Boolean = false,
     currentLanguageCode: String? = null,
-    onNavigateToLicenses: () -> Unit = {}
+    onNavigateToLicenses: () -> Unit = {},
+    onBack: () -> Unit = {}
 ) {
     val context = LocalContext.current
     
@@ -112,10 +111,10 @@ fun SettingsScreen(
                 // Add a small space below largeTitle
                 Spacer(modifier = Modifier.height(8.dp))
                 
-                SmallTitle(text = stringResource(id = R.string.language_settings))
+                SmallTitle(text = stringResource(id = R.string.general_settings_title))
                 
                 Card(
-                    modifier = Modifier.padding(bottom = 24.dp)
+                    modifier = Modifier.padding(bottom = 16.dp)
                 ) {
                     OverlayDropdownPreference(
                         title = stringResource(id = R.string.language_settings),
@@ -128,13 +127,6 @@ fun SettingsScreen(
                             Toast.makeText(context, context.getString(R.string.language_switched, languageOptions[index]), Toast.LENGTH_SHORT).show()
                         }
                     )
-                }
-                
-                SmallTitle(text = stringResource(id = R.string.theme_settings))
-                
-                Card(
-                    modifier = Modifier.padding(bottom = 24.dp)
-                ) {
                     OverlayDropdownPreference(
                         title = stringResource(id = R.string.theme_settings),
                         items = themeOptions,
