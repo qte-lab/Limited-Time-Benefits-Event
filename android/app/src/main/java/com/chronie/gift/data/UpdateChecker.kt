@@ -29,7 +29,7 @@ class UpdateChecker {
     suspend fun checkForUpdates(currentVersion: String): UpdateInfo? {
         try {
             // Use configurable API address
-            val apiBaseUrl = "http://192.168.0.197:3001"
+            val apiBaseUrl = "http://192.168.10.6:3001"
             val response = client.get("$apiBaseUrl/api/download_apk").body<UpdateResponse>()
             
             if (response.success && response.latest != null) {

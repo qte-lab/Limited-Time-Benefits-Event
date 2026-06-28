@@ -12,7 +12,7 @@ object LicensesData {
     val licenses = listOf(
         LicenseInfo(
             name = "AndroidX Core KTX",
-            version = "1.18.0",
+            version = "1.19.0",
             license = "Apache License 2.0",
             url = "https://developer.android.com/jetpack/androidx/releases/core",
             licenseText = """
@@ -71,7 +71,7 @@ END OF TERMS AND CONDITIONS
         ),
         LicenseInfo(
             name = "AndroidX Lifecycle Runtime KTX",
-            version = "2.10.0",
+            version = "2.11.0",
             license = "Apache License 2.0",
             url = "https://developer.android.com/jetpack/androidx/releases/lifecycle",
             licenseText = "Apache License 2.0 - See full license text above."
@@ -85,7 +85,7 @@ END OF TERMS AND CONDITIONS
         ),
         LicenseInfo(
             name = "AndroidX Compose BOM",
-            version = "2026.05.01",
+            version = "2026.06.00",
             license = "Apache License 2.0",
             url = "https://developer.android.com/jetpack/androidx/releases/compose",
             licenseText = "Apache License 2.0 - See full license text above."
@@ -99,7 +99,7 @@ END OF TERMS AND CONDITIONS
         ),
         LicenseInfo(
             name = "Ktor Client",
-            version = "3.5.0",
+            version = "3.5.1",
             license = "Apache License 2.0",
             url = "https://github.com/ktorio/ktor",
             licenseText = """
@@ -308,7 +308,7 @@ END OF TERMS AND CONDITIONS
         ),
         LicenseInfo(
             name = "Ktor Client Android",
-            version = "3.5.0",
+            version = "3.5.1",
             license = "Apache License 2.0",
             url = "https://github.com/ktorio/ktor",
             licenseText = """
@@ -517,7 +517,7 @@ END OF TERMS AND CONDITIONS
         ),
         LicenseInfo(
             name = "Ktor Client Content Negotiation",
-            version = "3.5.0",
+            version = "3.5.1",
             license = "Apache License 2.0",
             url = "https://github.com/ktorio/ktor",
             licenseText = """
@@ -726,7 +726,7 @@ END OF TERMS AND CONDITIONS
         ),
         LicenseInfo(
             name = "Ktor Serialization Kotlinx JSON",
-            version = "3.5.0",
+            version = "3.5.1",
             license = "Apache License 2.0",
             url = "https://github.com/ktorio/ktor",
             licenseText = """
@@ -1144,7 +1144,7 @@ END OF TERMS AND CONDITIONS
         ),
         LicenseInfo(
             name = "Coil",
-            version = "3.4.0",
+            version = "3.5.0",
             license = "Apache License 2.0",
             url = "https://github.com/coil-kt/coil",
             licenseText = """
@@ -1353,7 +1353,7 @@ END OF TERMS AND CONDITIONS
         ),
         LicenseInfo(
             name = "Coil Network OkHttp",
-            version = "3.4.0",
+            version = "3.5.0",
             license = "Apache License 2.0",
             url = "https://github.com/coil-kt/coil",
             licenseText = """
@@ -1562,7 +1562,7 @@ END OF TERMS AND CONDITIONS
         ),
         LicenseInfo(
             name = "Miuix",
-            version = "0.9.1",
+            version = "0.9.2",
             license = "Apache License 2.0",
             url = "https://github.com/compose-miuix-ui/miuix",
             licenseText = """
@@ -1771,7 +1771,7 @@ END OF TERMS AND CONDITIONS
         ),
         LicenseInfo(
             name = "Miuix Icons",
-            version = "0.9.1",
+            version = "0.9.2",
             license = "Apache License 2.0",
             url = "https://github.com/compose-miuix-ui/miuix",
             licenseText = """

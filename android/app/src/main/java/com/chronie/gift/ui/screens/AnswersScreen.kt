@@ -85,7 +85,7 @@ fun AnswersScreen() {
 
 @Composable
 fun MainContent(paddingValues: PaddingValues) {
-    val baseUrl = "http://192.168.0.197:3001"
+    val baseUrl = "http://192.168.10.6:3001"
     val (markdownFiles, setMarkdownFiles) = remember { mutableStateOf<List<String>>(emptyList()) }
     val (selectedFile, setSelectedFile) = remember { mutableStateOf<String?>(null) }
     val (markdownContent, setMarkdownContent) = remember { mutableStateOf<String?>(null) }

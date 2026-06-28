@@ -55,7 +55,7 @@ data class Activity(
 
 private fun fetchActivitiesFromNetwork(): Pair<List<Activity>, String?> {
     return try {
-        val url = URL("http://192.168.0.197:3001/api/activities")
+        val url = URL("http://192.168.10.6:3001/api/activities")
         val connection = url.openConnection() as HttpURLConnection
         connection.requestMethod = "GET"
         connection.connectTimeout = 10000
@@ -193,7 +193,7 @@ fun MainContent() {
                 ) {
                     TextButton(
                         text = stringResource(id = R.string.transaction_notice),
-                        onClick = { uriHandler.openUri("http://192.168.0.197:3100") },
+                        onClick = { uriHandler.openUri("http://192.168.10.6:3100") },
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
