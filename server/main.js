@@ -48,21 +48,14 @@ app.get('/api/activities', (_req, res) => {
     });
 });
 
-app.get('/api/download_apk', (_req, res) => {
+app.get('/api/download_apk', async (_req, res) => {
     const fs = require('fs');
     const path = require('path');
     
     const apkPath = path.join(__dirname, 'apk');
     
-    fs.readdir(apkPath, (err, files) => {
-        if (err) {
-            console.error('Failed to read APK directory:', err);
-            return res.status(500).json({
-                success: false,
-                message: 'Failed to read APK directory'
-            });
-        }
-        
+    try {
+        const files = await fs.promises.readdir(apkPath);
         const apks = files.filter(file => file.endsWith('.apk'));
         
         // Read output-metadata.json to get APK metadata
@@ -72,29 +65,25 @@ app.get('/api/download_apk', (_req, res) => {
         let versionName = 'unknown';
         
         try {
-            const metaPath = path.join(__dirname, 'apk', 'output-metadata.json');
-            const metaContent = fs.readFileSync(metaPath, 'utf8');
+            const metaPath = path.join(apkPath, 'output-metadata.json');
+            const metaContent = await fs.promises.readFile(metaPath, 'utf8');
             const metaData = JSON.parse(metaContent);
             
-            // Get the main APK file from metadata
             if (metaData.elements && metaData.elements.length > 0) {
                 const mainElement = metaData.elements[0];
                 latestApk = mainElement.outputFile || 'app-release.apk';
-                
-                // Get version info from metadata
                 versionCode = mainElement.versionCode || 0;
                 versionName = mainElement.versionName || 'unknown';
             }
         } catch (err) {
             console.error('Failed to read output-metadata.json:', err);
-            // Fallback to app-release.apk if metadata is not available
             latestApk = 'app-release.apk';
         }
+        
         // Get file size of latest APK
         if (latestApk) {
             try {
-                const stats = fs.statSync(path.join(apkPath, latestApk));
-                // Convert bytes to MB
+                const stats = await fs.promises.stat(path.join(apkPath, latestApk));
                 latestApkSize = (stats.size / (1024 * 1024)).toFixed(1);
             } catch (err) {
                 console.error('Failed to get APK file size:', err);
@@ -105,7 +94,7 @@ app.get('/api/download_apk', (_req, res) => {
         let changelogData = {};
         try {
             const changelogPath = path.join(__dirname, 'data', 'changelog.json');
-            const changelogJson = fs.readFileSync(changelogPath, 'utf8');
+            const changelogJson = await fs.promises.readFile(changelogPath, 'utf8');
             changelogData = JSON.parse(changelogJson);
         } catch (err) {
             console.error('Failed to read changelog:', err);
@@ -116,9 +105,17 @@ app.get('/api/download_apk', (_req, res) => {
             data: apks,
             latest: latestApk,
             latestSize: latestApkSize,
+            versionCode,
+            versionName,
             changelog: changelogData.changelog || {}
         });
-    });
+    } catch (err) {
+        console.error('Failed to read APK directory:', err);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to read APK directory'
+        });
+    }
 });
 
 // Download APK file by filename

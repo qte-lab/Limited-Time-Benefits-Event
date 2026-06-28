@@ -21,7 +21,8 @@ class UpdateChecker {
     data class UpdateResponse(
         val success: Boolean,
         val data: List<String>?,
-        val latest: String?,
+        val versionName: String?,
+        val versionCode: Int?,
         val latestSize: String?,
         val changelog: Map<String, String>?
     )
@@ -32,14 +33,15 @@ class UpdateChecker {
             val apiBaseUrl = "http://192.168.10.6:3001"
             val response = client.get("$apiBaseUrl/api/download_apk").body<UpdateResponse>()
             
-            if (response.success && response.latest != null) {
-                val latestVersion = response.latest
+            if (response.success && response.versionName != null) {
+                val latestVersion = response.versionName
                 if (isNewVersionAvailable(currentVersion, latestVersion)) {
                     // Get changelog for current language
                     val languageCode = getCurrentLanguageCode()
                     val changelogContent = response.changelog?.get(languageCode) ?: response.changelog?.get("en") ?: ""
                     
                     return UpdateInfo(
+                        versionCode = response.versionCode ?: 0,
                         latestVersion = latestVersion,
                         downloadUrl = "$apiBaseUrl/api/download_apk/$latestVersion",
                         changelog = changelogContent,
@@ -103,6 +105,7 @@ class UpdateChecker {
     }
 
     data class UpdateInfo(
+        val versionCode: Int = 0,
         val latestVersion: String? = null,
         val downloadUrl: String? = null,
         val changelog: String = "",
