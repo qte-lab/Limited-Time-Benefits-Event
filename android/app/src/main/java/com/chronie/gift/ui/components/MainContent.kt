@@ -188,15 +188,6 @@ fun MainContent() {
 
                 Spacer(modifier = Modifier.height(16.dp))
                 
-                Card(
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    TextButton(
-                        text = stringResource(id = R.string.transaction_notice),
-                        onClick = { uriHandler.openUri("http://192.168.10.6:3100") },
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
             }
         }
     }

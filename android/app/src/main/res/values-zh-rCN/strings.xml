@@ -1,6 +1,5 @@
 <resources>
     <string name="app_name">限时福利活动</string>
-    <string name="transaction_notice">您可以在金流(𝙲𝚑𝚛𝚢𝚜𝚘𝚛𝚛𝚑𝚘𝚎)上查看您的赢取记录。</string>
     <string name="activity">活动</string>
     <string name="tab_home">首页</string>
     <string name="tab_answers">题目答案</string>

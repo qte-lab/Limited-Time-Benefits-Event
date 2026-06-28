@@ -1,6 +1,5 @@
 <resources>
     <string name="app_name">限時福利活動</string>
-    <string name="transaction_notice">您可在金流(𝙲𝚑𝚛𝚢𝚜𝚘𝚛𝚛𝚑𝚘𝚎)平台查詢獲獎記錄。</string>
     <string name="activity">活動</string>
     <string name="tab_home">首頁</string>
     <string name="tab_answers">題目答案</string>

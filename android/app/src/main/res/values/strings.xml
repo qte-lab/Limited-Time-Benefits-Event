@@ -1,6 +1,5 @@
 <resources>
     <string name="app_name">Limited-Time Benefits Event</string>
-    <string name="transaction_notice">View your winning records on Chrysorrohoe.</string>
     <string name="activity">Activity</string>
     <string name="tab_home">Home</string>
     <string name="tab_answers">Answers</string>

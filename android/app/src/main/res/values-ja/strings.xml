@@ -1,6 +1,5 @@
 <resources>
     <string name="app_name">期間限定特典イベント</string>
-    <string name="transaction_notice">獲得記録はChrysorrohoeでご確認いただけます。</string>
     <string name="activity">活動</string>
     <string name="tab_home">ホーム</string>
     <string name="tab_answers">解答</string>
