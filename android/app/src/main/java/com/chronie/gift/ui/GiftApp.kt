@@ -6,8 +6,14 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Environment
 import android.widget.Toast
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import top.yukonga.miuix.kmp.basic.Icon
+import top.yukonga.miuix.kmp.icon.extended.HorizontalSplit
+import top.yukonga.miuix.kmp.icon.extended.ListView
+import top.yukonga.miuix.kmp.icon.extended.Settings
+import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -17,6 +23,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
@@ -25,7 +32,11 @@ import com.chronie.gift.data.ThemeManager
 import com.chronie.gift.data.TabManager
 import com.chronie.gift.data.UpdateChecker
 import com.chronie.gift.data.AppDownloadManager
-import com.chronie.gift.ui.components.TabBar
+import com.chronie.gift.ui.navigation.FloatingBottomBar
+import com.chronie.gift.ui.navigation.FloatingBottomBarItem
+import com.chronie.gift.ui.navigation.FloatingBottomBarMode
+import top.yukonga.miuix.kmp.blur.rememberLayerBackdrop
+import top.yukonga.miuix.kmp.blur.layerBackdrop
 import com.chronie.gift.ui.components.UpdateDialog
 import com.chronie.gift.ui.navigation.NavRoutes
 import com.chronie.gift.ui.screens.AnswersScreen
@@ -37,6 +48,10 @@ import com.chronie.gift.ui.theme.ColorSchemeMode
 import com.chronie.gift.ui.theme.GiftTheme
 import com.chronie.gift.ui.theme.ThemeController
 import com.chronie.gift.ui.theme.LanguageController
+import top.yukonga.miuix.kmp.icon.MiuixIcons
+import top.yukonga.miuix.kmp.icon.extended.HorizontalSplit
+import top.yukonga.miuix.kmp.icon.extended.ListView
+import top.yukonga.miuix.kmp.icon.extended.Settings
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.launch
@@ -179,13 +194,27 @@ fun GiftApp() {
     
     // Move GiftTheme call here to ensure theme changes are applied immediately
     GiftTheme(controller = controller, languageController = languageController) {
+        val backdrop = rememberLayerBackdrop()
         androidx.compose.foundation.layout.Box(modifier = Modifier.fillMaxSize()) {
             Scaffold(
                 modifier = Modifier.fillMaxSize(),
                 bottomBar = {
-                    TabBar(
-                        selectedTab = selectedTab,
-                        onTabChange = { tab ->
+                    FloatingBottomBar(
+                        selectedIndex = {
+                            when (selectedTab) {
+                                NavRoutes.Home -> 0
+                                NavRoutes.Answers -> 1
+                                NavRoutes.Settings -> 2
+                                else -> 0
+                            }
+                        },
+                        onSelected = { index ->
+                            val tab = when (index) {
+                                0 -> NavRoutes.Home
+                                1 -> NavRoutes.Answers
+                                2 -> NavRoutes.Settings
+                                else -> NavRoutes.Home
+                            }
                             selectedTab = tab
                             tabManager.saveTab(tab)
                             when (tab) {
@@ -193,43 +222,91 @@ fun GiftApp() {
                                 NavRoutes.Answers -> navController.navigate(NavRoutes.Answers)
                                 NavRoutes.Settings -> navController.navigate(NavRoutes.Settings)
                             }
+                        },
+                        backdrop = backdrop,
+                        tabsCount = 3,
+                        mode = FloatingBottomBarMode.LiquidGlass,
+                    ) {
+                        FloatingBottomBarItem(
+                            onClick = {
+                                val tab = NavRoutes.Home
+                                selectedTab = tab
+                                tabManager.saveTab(tab)
+                                navController.navigate(NavRoutes.Home)
+                            }
+                        ) {
+                            Icon(
+                                imageVector = MiuixIcons.HorizontalSplit,
+                                contentDescription = stringResource(R.string.tab_home)
+                            )
+                            Text(stringResource(R.string.tab_home))
                         }
-                    )
+                        FloatingBottomBarItem(
+                            onClick = {
+                                val tab = NavRoutes.Answers
+                                selectedTab = tab
+                                tabManager.saveTab(tab)
+                                navController.navigate(NavRoutes.Answers)
+                            }
+                        ) {
+                            Icon(
+                                imageVector = MiuixIcons.ListView,
+                                contentDescription = stringResource(R.string.tab_answers)
+                            )
+                            Text(stringResource(R.string.tab_answers))
+                        }
+                        FloatingBottomBarItem(
+                            onClick = {
+                                val tab = NavRoutes.Settings
+                                selectedTab = tab
+                                tabManager.saveTab(tab)
+                                navController.navigate(NavRoutes.Settings)
+                            }
+                        ) {
+                            Icon(
+                                imageVector = MiuixIcons.Settings,
+                                contentDescription = stringResource(R.string.tab_settings)
+                            )
+                            Text(stringResource(R.string.tab_settings))
+                        }
+                    }
                 }
             ) {
-                NavHost(
-                    navController = navController,
-                    startDestination = NavRoutes.Home,
-                ) {
-                    composable(NavRoutes.Home) {
-                        HomeScreen()
-                    }
-                    composable(NavRoutes.Answers) {
-                        AnswersScreen()
-                    }
-                    composable(NavRoutes.Settings) {
-                        SettingsScreen(
-                            onThemeUpdated = updateThemeMode,
-                            onLanguageUpdated = updateLanguageCode,
-                            currentLanguageCode = languageController.languageCode,
-                            onCheckUpdate = {
-                                val coroutineScope = kotlinx.coroutines.CoroutineScope(Dispatchers.Main)
-                                coroutineScope.launch {
-                                    checkForUpdates()
+                Box(Modifier.layerBackdrop(backdrop)) {
+                    NavHost(
+                        navController = navController,
+                        startDestination = NavRoutes.Home,
+                    ) {
+                        composable(NavRoutes.Home) {
+                            HomeScreen()
+                        }
+                        composable(NavRoutes.Answers) {
+                            AnswersScreen()
+                        }
+                        composable(NavRoutes.Settings) {
+                            SettingsScreen(
+                                onThemeUpdated = updateThemeMode,
+                                onLanguageUpdated = updateLanguageCode,
+                                currentLanguageCode = languageController.languageCode,
+                                onCheckUpdate = {
+                                    val coroutineScope = kotlinx.coroutines.CoroutineScope(Dispatchers.Main)
+                                    coroutineScope.launch {
+                                        checkForUpdates()
+                                    }
+                                },
+                                isCheckingUpdate = isCheckingUpdate,
+                                onNavigateToLicenses = {
+                                    navController.navigate(NavRoutes.Licenses)
                                 }
-                            },
-                            isCheckingUpdate = isCheckingUpdate,
-                            onNavigateToLicenses = {
-                                navController.navigate(NavRoutes.Licenses)
-                            }
-                        )
-                    }
-                    composable(NavRoutes.Licenses) {
-                        LicensesScreen(
-                            onBack = {
-                                navController.popBackStack()
-                            }
-                        )
+                            )
+                        }
+                        composable(NavRoutes.Licenses) {
+                            LicensesScreen(
+                                onBack = {
+                                    navController.popBackStack()
+                                }
+                            )
+                        }
                     }
                 }
             }

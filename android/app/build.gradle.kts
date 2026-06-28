@@ -116,6 +116,7 @@ dependencies {
     implementation(libs.miuix.ui)
     implementation(libs.miuix.preference)
     implementation(libs.miuix.icons)
+    implementation(libs.miuix.blur)
     
     // No longer need Markdown rendering library, we use our own renderer
 }
