@@ -109,7 +109,7 @@ dependencies {
     implementation("io.ktor:ktor-serialization-kotlinx-json:3.5.0")
     
     // Image loading library
-    implementation("io.coil-kt.coil3:coil-compose:3.4.0")
+    implementation("io.coil-kt.coil3:coil-compose:3.5.0")
     implementation("io.coil-kt.coil3:coil-network-okhttp:3.4.0")
     
     // Miuix dependencies
