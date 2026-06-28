@@ -21,9 +21,10 @@ class UpdateChecker {
     data class UpdateResponse(
         val success: Boolean,
         val data: List<String>?,
-        val versionName: String?,
-        val versionCode: Int?,
+        val latest: String?,
         val latestSize: String?,
+        val versionCode: Int?,
+        val versionName: String?,
         val changelog: Map<String, String>?
     )
 
@@ -43,7 +44,7 @@ class UpdateChecker {
                     return UpdateInfo(
                         versionCode = response.versionCode ?: 0,
                         latestVersion = latestVersion,
-                        downloadUrl = "$apiBaseUrl/api/download_apk/$latestVersion",
+                        downloadUrl = "$apiBaseUrl/api/download_apk/${response.latest}",
                         changelog = changelogContent,
                         fileSize = response.latestSize ?: "0.0"
                     )
