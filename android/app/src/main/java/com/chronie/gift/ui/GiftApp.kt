@@ -4,11 +4,15 @@ import android.app.DownloadManager
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.os.Build
 import android.os.Environment
 import android.widget.Toast
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.ui.unit.dp
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.icon.extended.HorizontalSplit
 import top.yukonga.miuix.kmp.icon.extended.ListView
@@ -21,6 +25,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -199,7 +204,15 @@ fun GiftApp() {
             Scaffold(
                 modifier = Modifier.fillMaxSize(),
                 bottomBar = {
-                    FloatingBottomBar(
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .navigationBarsPadding()
+                            .padding(horizontal = 16.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        FloatingBottomBar(
+                        modifier = Modifier.fillMaxWidth(0.8f),
                         selectedIndex = {
                             when (selectedTab) {
                                 NavRoutes.Home -> 0
@@ -225,7 +238,11 @@ fun GiftApp() {
                         },
                         backdrop = backdrop,
                         tabsCount = 3,
-                        mode = FloatingBottomBarMode.LiquidGlass,
+                        mode = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                            FloatingBottomBarMode.LiquidGlass
+                        } else {
+                            FloatingBottomBarMode.None
+                        },
                     ) {
                         FloatingBottomBarItem(
                             onClick = {
@@ -269,6 +286,7 @@ fun GiftApp() {
                             )
                             Text(stringResource(R.string.tab_settings))
                         }
+                    }
                     }
                 }
             ) {

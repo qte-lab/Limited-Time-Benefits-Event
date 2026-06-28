@@ -9,3 +9,4 @@ android/*.jks
 android/app/*.jks
 release.keystore
 app-release.dm
+android/.kotlin/errors/
