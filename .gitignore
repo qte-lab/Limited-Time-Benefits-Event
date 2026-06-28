@@ -10,3 +10,4 @@ android/app/*.jks
 release.keystore
 app-release.dm
 android/.kotlin/errors/
+output-metadata.json

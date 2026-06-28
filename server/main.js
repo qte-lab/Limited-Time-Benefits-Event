@@ -65,33 +65,31 @@ app.get('/api/download_apk', (_req, res) => {
         
         const apks = files.filter(file => file.endsWith('.apk'));
         
-        // Sort by filename in descending order, latest version first (assuming filename format is 1.20260106.0243.apk)
-        apks.sort((a, b) => {
-            // Extract version number and timestamp information from filename
-            const extractInfo = (filename) => {
-                const match = filename.match(/^(\d+)\.(\d+)\.(\d+)\.apk$/);
-                if (match) {
-                    return {
-                        version: parseInt(match[1]),
-                        date: parseInt(match[2]),
-                        time: parseInt(match[3])
-                    };
-                }
-                return { version: 0, date: 0, time: 0 };
-            };
-            
-            const infoA = extractInfo(a);
-            const infoB = extractInfo(b);
-            
-            // Sort by version number first, then by date, finally by time
-            if (infoB.version !== infoA.version) return infoB.version - infoA.version;
-            if (infoB.date !== infoA.date) return infoB.date - infoA.date;
-            return infoB.time - infoA.time;
-        });
-        
-        const latestApk = apks.length > 0 ? apks[0] : null;
+        // Read output-metadata.json to get APK metadata
+        let latestApk = null;
         let latestApkSize = null;
+        let versionCode = 0;
+        let versionName = 'unknown';
         
+        try {
+            const metaPath = path.join(__dirname, 'apk', 'output-metadata.json');
+            const metaContent = fs.readFileSync(metaPath, 'utf8');
+            const metaData = JSON.parse(metaContent);
+            
+            // Get the main APK file from metadata
+            if (metaData.elements && metaData.elements.length > 0) {
+                const mainElement = metaData.elements[0];
+                latestApk = mainElement.outputFile || 'app-release.apk';
+                
+                // Get version info from metadata
+                versionCode = mainElement.versionCode || 0;
+                versionName = mainElement.versionName || 'unknown';
+            }
+        } catch (err) {
+            console.error('Failed to read output-metadata.json:', err);
+            // Fallback to app-release.apk if metadata is not available
+            latestApk = 'app-release.apk';
+        }
         // Get file size of latest APK
         if (latestApk) {
             try {
