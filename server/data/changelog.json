@@ -1,8 +1,8 @@
 {
   "changelog": {
-    "zh-cn": "- 修复已知问题",
-    "zh-tw": "- 修復已知問題",
-    "en": "- Fix known issues",
-    "ja": "- 既知の問題を修正"
+    "zh-cn": "- 优化了文档解析性能\n - 优化了底部导航栏显示效果，重构为液体玻璃\n - 修复了已知问题",
+    "zh-tw": "- 优化了文件解析性能\n - 优化了底部導航欄顯示效果，重构為液体玻璃\n - 修复了已知問題",
+    "en": "- Improved navigation bar display effect, reconstructed to liquid glass\n - Fixed known issues\n - Fixed document parsing performance issue",
+    "ja": "- 导航バーの表示効果を改善し、液体玻璃に再構築\n - 既知の問題を修正\n - 文書解析性能を改善"
   }
 }

@@ -4,9 +4,9 @@ A multi-platform limited-time benefits event management system with Android clie
 
 ## Project Overview
 
-This project provides a comprehensive solution for managing and displaying limited-time promotional activities across multiple platforms. It consists of three main components:
+This project provides a comprehensive solution for managing and displaying limited-time promotional activities across multiple platforms. It consists of two main components:
 
-- **Backend (Node.js)**: RESTful API server for data management and APK distribution
+- **Backend (Go)**: RESTful API server for data management and APK distribution
 - **Android App**: Native Android application built with Jetpack Compose
 
 ## Features
@@ -15,8 +15,8 @@ This project provides a comprehensive solution for managing and displaying limit
 - RESTful API endpoints for activities and markdown content
 - APK file management and distribution
 - Changelog management for version updates
-- Static file serving
-- CORS support for cross-origin requests
+- Static file serving with gzip compression
+- Data caching mechanism (60 seconds)
 
 ### Android Application
 - Jetpack Compose UI with Miuix design system
@@ -39,47 +39,47 @@ gift/
 │   │           │   ├── data/           # Data managers
 │   │           │   │   ├── DownloadManager.kt
 │   │           │   │   ├── LanguageManager.kt
+│   │           │   │   ├── LicenseInfo.kt
+│   │           │   │   ├── TabManager.kt
 │   │           │   │   ├── ThemeManager.kt
 │   │           │   │   └── UpdateChecker.kt
 │   │           │   ├── ui/             # UI components
-│   │           │   │   ├── components/
-│   │           │   │   ├── markdown/
-│   │           │   │   ├── navigation/
-│   │           │   │   ├── screens/
-│   │           │   │   └── theme/
+│   │           │   │   └── GiftApp.kt
 │   │           │   ├── MainActivity.kt
 │   │           │   └── GiftApplication.kt
-│   │           └── res/                 # Resources
+│   │           └── res/                # Resources
 │   └── gradle/
-├── server/              # Backend API
-│   ├── data/            # Data files
-│   └── main.js          # Server entry point
-├── scripts/             # Utility scripts
-├── package.json         # Node.js dependencies
-└── start.bat           # Windows startup script
+├── server/               # Data directory (legacy)
+│   └── data/             # Activity and changelog data
+├── server-go/            # Go backend API
+│   ├── main.go           # Server entry point with routing
+│   ├── handlers.go       # API handlers
+│   ├── cache.go          # Cache implementation
+│   ├── go.mod            # Go module definition
+│   └── gift-server.exe   # Pre-built executable
+└── .gitignore
 ```
 
 ## Technology Stack
 
 ### Backend
-- **Runtime**: Node.js
-- **Framework**: Express.js
-- **Dependencies**:
-  - `cors` - Cross-origin resource sharing
-  - `express` - Web framework
-  - `http-proxy-middleware` - Proxy middleware
-  - `node-fetch` - HTTP client
+- **Runtime**: Go 1.26.4
+- **Standard Library**: net/http, encoding/json, os, path/filepath, sync
+- **Features**:
+  - Built-in HTTP server
+  - Gzip compression middleware
+  - In-memory caching with TTL (60 seconds)
 
 ### Android Application
-- **Language**: Kotlin
+- **Language**: Kotlin 2.4.0
 - **UI Framework**: Jetpack Compose
-- **Design System**: Miuix KMP
+- **Design System**: Miuix KMP 0.9.3
 - **Key Libraries**:
-  - Ktor Client - HTTP client
-  - Coil - Image loading
+  - Ktor Client 3.5.1 - HTTP client
+  - Coil 3.5.0 - Image loading
   - Kotlinx Serialization - JSON serialization
-  - Miuix KMP - Design components
-  - Navigation Compose - Navigation
+  - Miuix KMP - Design components (ui, preference, icons, blur)
+  - Navigation Compose 2.9.8 - Navigation
 
 ## API Endpoints
 
@@ -87,35 +87,65 @@ gift/
 - `GET /api/activities` - Get list of activities
 
 ### APK Management
-- `GET /api/download_apk` - Get list of available APKs
+- `GET /api/download_apk` - Get list of available APKs with version info
 - `GET /api/download_apk/:filename` - Download specific APK file
 
 ### Markdown Content
 - `GET /api/outdate-test/markdown` - Get list of markdown files
 - `GET /api/outdate-test/markdown/:filename` - Get content of specific markdown file
 
+### API Response Format
+
+All API responses follow a unified format:
+
+```json
+{
+  "success": true,
+  "data": [...]
+}
+```
+
+### APK Info Response
+
+The `/api/download_apk` endpoint returns additional version information:
+
+```json
+{
+  "success": true,
+  "data": ["app-release.apk"],
+  "latest": "app-release.apk",
+  "latestSize": "15.5",
+  "versionCode": 100,
+  "versionName": "1.0.0",
+  "changelog": {
+    "en": "Version notes",
+    "zh-cn": "版本说明"
+  }
+}
+```
+
 ## Installation
 
 ### Prerequisites
-- Node.js (v14 or higher)
-- npm or yarn
+- Go 1.26.4 or higher
 - Android Studio (for Android development)
 - JDK 11 or higher
 
 ### Backend Setup
 
-1. Navigate to the project root directory
-2. Install dependencies:
+1. Navigate to the Go server directory:
    ```bash
-   npm install
+   cd server-go
    ```
+
+2. Build the server:
+   ```bash
+   go build -o gift-server.exe
+   ```
+
 3. Start the server:
    ```bash
-   npm run dev
-   ```
-   Or on Windows:
-   ```bash
-   start.bat
+   ./gift-server.exe
    ```
 
 The server will start on `http://localhost:3001` by default.
@@ -134,6 +164,8 @@ Create the following data files in `server/data/`:
 - `changelog.json` - Version changelog
 - `outdate-test-markdown/` - Directory for markdown files
 
+Place APK files in `server/apk/` for distribution.
+
 Example `activities.json`:
 ```json
 {
@@ -146,13 +178,27 @@ Example `activities.json`:
 }
 ```
 
+Example `changelog.json`:
+```json
+{
+  "changelog": {
+    "en": "Version notes in English",
+    "zh-cn": "Version notes in Chinese Simplified",
+    "zh-tw": "Version notes in Chinese Traditional",
+    "ja": "Version notes in Japanese"
+  }
+}
+```
+
 ## Development
 
 ### Backend Development
 
-The backend is a simple Express.js server. Key files:
+The backend is a lightweight Go HTTP server. Key files:
 
-- `server/main.js` - Main server file with API routes
+- `server-go/main.go` - Main server file with routing and gzip middleware
+- `server-go/handlers.go` - API endpoint handlers
+- `server-go/cache.go` - In-memory cache implementation
 
 ### Android Development
 
@@ -189,18 +235,19 @@ The Android app uses a timestamp-based versioning scheme:
 
 Version is automatically generated during build using system timestamp.
 
-### Changelog
+### Version Info API
 
-Changelogs are managed in `server/data/changelog.json` with support for multiple languages:
+The Go backend reads version information from `server/apk/output-metadata.json`:
 
 ```json
 {
-  "changelog": {
-    "en": "Version notes in English",
-    "zh-cn": "Version notes in Chinese Simplified",
-    "zh-tw": "Version notes in Chinese Traditional",
-    "ja": "Version notes in Japanese"
-  }
+  "elements": [
+    {
+      "outputFile": "app-release.apk",
+      "versionCode": 100,
+      "versionName": "1.0.0"
+    }
+  ]
 }
 ```
 
@@ -210,12 +257,12 @@ Changelogs are managed in `server/data/changelog.json` with support for multiple
 
 The server port can be configured via environment variable:
 ```bash
-PORT=3001 npm start
+PORT=3001 ./gift-server.exe
 ```
 
 ### API Base URL
 
-The Android app's API base URL is configured in `UpdateChecker.kt`. Update the `apiBaseUrl` variable to match your server address.
+The Android app's API base URL is configured in `UpdateChecker.kt`. The current default URL is `http://192.168.10.6:3001`. Update the `apiBaseUrl` variable to match your server address.
 
 ## Building
 
@@ -229,6 +276,21 @@ To build a release APK:
 4. The APK will be generated in `app/release/`
 
 Place the generated APK in `server/apk/` for distribution.
+
+### Go Server
+
+To build the server for different platforms:
+
+```bash
+# Windows
+go build -o gift-server.exe
+
+# Linux
+GOOS=linux GOARCH=amd64 go build -o gift-server
+
+# macOS
+GOOS=darwin GOARCH=arm64 go build -o gift-server
+```
 
 ## License
 

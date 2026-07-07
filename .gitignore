@@ -11,3 +11,4 @@ release.keystore
 app-release.dm
 android/.kotlin/errors/
 output-metadata.json
+server-go/gift-server.exe
