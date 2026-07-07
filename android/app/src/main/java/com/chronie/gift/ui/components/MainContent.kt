@@ -49,7 +49,7 @@ data class Activity(
 
 private fun fetchActivitiesFromNetwork(): Pair<List<Activity>, String?> {
     return try {
-        val url = URL("http://192.168.10.9:3001/api/activities")
+        val url = URL("http://192.168.10.9:3002/api/activities")
         val connection = url.openConnection() as HttpURLConnection
         connection.requestMethod = "GET"
         connection.connectTimeout = 10000

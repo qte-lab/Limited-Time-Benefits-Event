@@ -148,7 +148,7 @@ The `/api/download_apk` endpoint returns additional version information:
    ./gift-server.exe
    ```
 
-The server will start on `http://localhost:3001` by default.
+The server will start on `http://localhost:3002` by default.
 
 ### Android App Setup
 
@@ -262,12 +262,12 @@ The Go backend reads version information from `server/apk/output-metadata.json`:
 
 The server port can be configured via environment variable:
 ```bash
-PORT=3001 ./gift-server.exe
+PORT=3002 ./gift-server.exe
 ```
 
 ### API Base URL
 
-The Android app's API base URL is configured in `UpdateChecker.kt`. The current default URL is `http://192.168.10.9:3001`. Update the `apiBaseUrl` variable to match your server address.
+The Android app's API base URL is configured in `UpdateChecker.kt`. The current default URL is `http://192.168.10.9:3002`. Update the `apiBaseUrl` variable to match your server address.
 
 ## Building
 

@@ -68,7 +68,7 @@ func main() {
 
 	port := os.Getenv("PORT")
 	if port == "" {
-		port = "3001"
+		port = "3002"
 	}
 
 	wrappedHandler := gzipHandler(mux)
