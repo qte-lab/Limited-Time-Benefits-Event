@@ -63,10 +63,10 @@ class UpdateChecker {
         val language = locale.language
         val country = locale.country
         
-        return when {
-            language == "zh" && country == "CN" -> "zh-cn"
-            language == "zh" && country == "TW" -> "zh-tw"
-            language == "ja" -> "ja"
+        return when (language) {
+            "zh" if country == "CN" -> "zh-cn"
+            "zh" if country == "TW" -> "zh-tw"
+            "ja" -> "ja"
             else -> "en"
         }
     }

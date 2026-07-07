@@ -17,7 +17,7 @@
     <string name="theme_auto">Auto</string>
     <string name="language_switched">Language switched to %1$s</string>
     <string name="theme_switched">Theme switched to %1$s</string>
-    <string name="loading_text">Loading...</string>
+    <string name="loading_text">Loading…</string>
     <string name="error_title">Error</string>
     <string name="please_select_file">Please select a file</string>
     <string name="watermark_text">All rights reserved. Unauthorized use prohibited.</string>
@@ -41,12 +41,12 @@
     <string name="update_dialog_title">Latest Version</string>
     <string name="update_dialog_button">Update Now (%sMB)</string>
     <string name="update_dialog_hint">After download completes, pull down notification bar and click to install</string>
-    <string name="update_checking">Checking for updates...</string>
+    <string name="update_checking">Checking for updates…</string>
     <string name="update_available">New version available</string>
     <string name="update_not_available">You have the latest version</string>
     <string name="update_error">Failed to check for updates</string>
     <string name="update_check_failed">Failed to check for updates</string>
-    <string name="update_start_download">Starting download...</string>
+    <string name="update_start_download">Starting download…</string>
     <string name="update_download_failed">Download failed</string>
     <string name="update_notification_title">Update App</string>
     <string name="update_notification_description">Downloading latest version</string>

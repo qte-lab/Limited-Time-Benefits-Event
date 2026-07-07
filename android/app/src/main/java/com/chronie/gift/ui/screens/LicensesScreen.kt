@@ -1,6 +1,6 @@
 package com.chronie.gift.ui.screens
 
-import androidx.compose.foundation.layout.Box
+import android.annotation.SuppressLint
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -16,7 +16,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
@@ -33,16 +32,15 @@ import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextButton
 import top.yukonga.miuix.kmp.basic.TopAppBar
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
-import top.yukonga.miuix.kmp.basic.rememberTopAppBarState
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.Back
 import top.yukonga.miuix.kmp.theme.MiuixTheme
-import top.yukonga.miuix.kmp.theme.LocalDismissState
 import top.yukonga.miuix.kmp.utils.PressFeedbackType
 import top.yukonga.miuix.kmp.window.WindowDialog
 
+@SuppressLint("LocalContextGetResourceValueCall")
 @Composable
 fun LicensesScreen(
     onBack: () -> Unit
@@ -150,7 +148,6 @@ fun LicensesScreen(
                 selectedLicense = null
             }
         ) {
-            val dismiss = LocalDismissState.current
 
             Column(
                 modifier = Modifier
@@ -159,13 +156,13 @@ fun LicensesScreen(
                     .verticalScroll(rememberScrollState())
             ) {
                 Text(
-                    text = "${license.version}",
+                    text = license.version,
                     style = MiuixTheme.textStyles.body1,
                     color = MiuixTheme.colorScheme.onSurface
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = "${license.license}",
+                    text = license.license,
                     style = MiuixTheme.textStyles.body1,
                     color = MiuixTheme.colorScheme.primary
                 )
@@ -181,7 +178,7 @@ fun LicensesScreen(
                     onClick = {
                         try {
                             uriHandler.openUri(license.url)
-                        } catch (e: Exception) {
+                        } catch (_: Exception) {
                             Toast.makeText(context, context.getString(R.string.open_link_failed), Toast.LENGTH_SHORT).show()
                         }
                     },

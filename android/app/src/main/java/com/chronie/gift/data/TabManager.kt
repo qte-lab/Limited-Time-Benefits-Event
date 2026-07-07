@@ -2,6 +2,7 @@ package com.chronie.gift.data
 
 import android.content.Context
 import android.content.SharedPreferences
+import androidx.core.content.edit
 
 class TabManager(private val context: Context) {
     companion object {
@@ -15,7 +16,7 @@ class TabManager(private val context: Context) {
 
     fun saveTab(tab: String) {
         val preferences = getPreferences()
-        preferences.edit().putString(TAB_KEY, tab).apply()
+        preferences.edit { putString(TAB_KEY, tab) }
     }
 
     fun getSavedTab(): String {

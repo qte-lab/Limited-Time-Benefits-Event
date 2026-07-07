@@ -38,7 +38,7 @@ fun TabBar(
     FloatingNavigationBar(
         color = MiuixTheme.colorScheme.background.copy(alpha = 0.7f)
     ) {
-        tabs.forEachIndexed { index, item ->
+        tabs.forEachIndexed { index, _ ->
             FloatingNavigationBarItem(
                 icon = icons[index],
                 label = labels[index],

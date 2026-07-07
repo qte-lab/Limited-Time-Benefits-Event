@@ -85,7 +85,7 @@ END OF TERMS AND CONDITIONS
         ),
         LicenseInfo(
             name = "AndroidX Compose BOM",
-            version = "2026.06.00",
+            version = "2026.06.01",
             license = "Apache License 2.0",
             url = "https://developer.android.com/jetpack/androidx/releases/compose",
             licenseText = "Apache License 2.0 - See full license text above."
@@ -1562,7 +1562,7 @@ END OF TERMS AND CONDITIONS
         ),
         LicenseInfo(
             name = "Miuix",
-            version = "0.9.2",
+            version = "0.9.3",
             license = "Apache License 2.0",
             url = "https://github.com/compose-miuix-ui/miuix",
             licenseText = """
@@ -1771,7 +1771,7 @@ END OF TERMS AND CONDITIONS
         ),
         LicenseInfo(
             name = "Miuix Icons",
-            version = "0.9.2",
+            version = "0.9.3",
             license = "Apache License 2.0",
             url = "https://github.com/compose-miuix-ui/miuix",
             licenseText = """

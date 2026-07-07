@@ -6,6 +6,7 @@ import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Environment
 import android.util.Log
+import androidx.annotation.RequiresApi
 import java.io.File
 import java.io.FileWriter
 import java.io.PrintWriter
@@ -26,11 +27,13 @@ class GiftApplication : Application() {
     private var crashHandler: Thread.UncaughtExceptionHandler? = null
     private val executorService: ExecutorService = Executors.newSingleThreadExecutor()
 
+    @RequiresApi(Build.VERSION_CODES.BAKLAVA)
     override fun onCreate() {
         super.onCreate()
         initCrashHandler()
     }
 
+    @RequiresApi(Build.VERSION_CODES.BAKLAVA)
     private fun initCrashHandler() {
         // Get default exception handler
         crashHandler = Thread.getDefaultUncaughtExceptionHandler()
@@ -45,6 +48,7 @@ class GiftApplication : Application() {
         }
     }
 
+    @RequiresApi(Build.VERSION_CODES.BAKLAVA)
     private fun saveCrashLog(thread: Thread, throwable: Throwable) {
         executorService.execute {
             try {
@@ -104,7 +108,7 @@ class GiftApplication : Application() {
         return try {
             val packageInfo = context.packageManager.getPackageInfo(context.packageName, 0)
             packageInfo.versionName ?: "Unknown"
-        } catch (e: PackageManager.NameNotFoundException) {
+        } catch (_: PackageManager.NameNotFoundException) {
             "Unknown"
         }
     }

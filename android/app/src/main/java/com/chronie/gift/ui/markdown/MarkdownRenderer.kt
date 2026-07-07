@@ -1,11 +1,9 @@
 package com.chronie.gift.ui.markdown
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.state.ToggleableState
 import top.yukonga.miuix.kmp.basic.Checkbox
 import top.yukonga.miuix.kmp.basic.HorizontalDivider
@@ -17,7 +15,6 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
@@ -26,7 +23,6 @@ import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.Music
 import top.yukonga.miuix.kmp.icon.extended.Pause
 import top.yukonga.miuix.kmp.icon.extended.Play
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.*
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -36,20 +32,16 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.viewinterop.AndroidView
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.platform.LocalHapticFeedback
 import android.content.Context
 import android.media.MediaPlayer
-import android.net.Uri
 import android.widget.MediaController
 import android.widget.VideoView
-import android.widget.Toast
 import androidx.compose.foundation.text.selection.SelectionContainer
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import coil3.size.Scale
 import com.chronie.gift.R
-import com.chronie.gift.ui.markdown.LatinModernMathFontFamily
+import androidx.core.net.toUri
 
 // Markdown renderer component with text selection support
 @Composable
@@ -87,12 +79,12 @@ private fun RenderNode(
 ) {
     when (node) {
         is Paragraph -> RenderParagraph(node, onLinkClick, context)
-        is Heading -> RenderHeading(node, onLinkClick, context)
+        is Heading -> RenderHeading(node, onLinkClick)
         is TextNode -> RenderTextNode(node)
         is Link -> RenderLink(node, onLinkClick, context)
         is Image -> RenderImage(node, context)
         is Audio -> RenderAudio(node, context)
-        is Video -> RenderVideo(node, context)
+        is Video -> RenderVideo(node)
         is UnorderedList -> RenderUnorderedList(node, onLinkClick, context)
         is OrderedList -> RenderOrderedList(node, onLinkClick, context)
         is CodeBlock -> RenderCodeBlock(node)
@@ -582,52 +574,11 @@ private sealed class InlineSegment {
     data class Other(val node: MarkdownNode) : InlineSegment()
 }
 
-// Build inline segments from paragraph children
-private fun buildInlineSegments(children: List<MarkdownNode>): List<InlineSegment> {
-    val segments = mutableListOf<InlineSegment>()
-    var currentTextNodes = mutableListOf<MarkdownNode>()
-
-    fun flushTextNodes() {
-        if (currentTextNodes.isNotEmpty()) {
-            segments.add(InlineSegment.Text(currentTextNodes.toList()))
-            currentTextNodes.clear()
-        }
-    }
-
-    children.forEach { child ->
-        when (child) {
-            is TextNode, is Link -> {
-                currentTextNodes.add(child)
-            }
-            is MathFormula -> {
-                flushTextNodes()
-                segments.add(InlineSegment.Math(child.formula, child.isBlock))
-            }
-            is ChemicalFormula -> {
-                flushTextNodes()
-                segments.add(InlineSegment.Chemical(child.formula))
-            }
-            is com.chronie.gift.ui.markdown.Image -> {
-                flushTextNodes()
-                segments.add(InlineSegment.Image(child))
-            }
-            else -> {
-                flushTextNodes()
-                segments.add(InlineSegment.Other(child))
-            }
-        }
-    }
-
-    flushTextNodes()
-    return segments
-}
-
 // Render heading
 @Composable
 private fun RenderHeading(
     heading: Heading,
-    onLinkClick: (String) -> Unit,
-    context: Context
+    onLinkClick: (String) -> Unit
 ) {
     val fontSize = when (heading.level) {
         1 -> 28.sp
@@ -954,7 +905,7 @@ private fun RenderAudio(audio: Audio, context: Context) {
         
         try {
             // Use setDataSource instead of create, support streaming large files
-            player.setDataSource(context, Uri.parse(audio.url))
+            player.setDataSource(context, audio.url.toUri())
             player.setOnPreparedListener {
                 isPrepared = true
             }
@@ -1046,7 +997,7 @@ private fun RenderAudio(audio: Audio, context: Context) {
 
 // Render video
 @Composable
-private fun RenderVideo(video: Video, context: Context) {
+private fun RenderVideo(video: Video) {
     Card(
             modifier = Modifier.fillMaxWidth(),
             cornerRadius = 12.dp
@@ -1055,7 +1006,7 @@ private fun RenderVideo(video: Video, context: Context) {
             modifier = Modifier.fillMaxWidth().height(250.dp),
             factory = {
                 VideoView(it).apply {
-                    setVideoURI(Uri.parse(video.url))
+                    setVideoURI(video.url.toUri())
                     val mediaController = MediaController(it)
                     mediaController.setAnchorView(this)
                     setMediaController(mediaController)
@@ -1063,7 +1014,7 @@ private fun RenderVideo(video: Video, context: Context) {
             },
             update = { videoView ->
                 // Only re-set video when URL changes
-                val newUri = Uri.parse(video.url)
+                val newUri = video.url.toUri()
                 // VideoView doesn't have a direct method to get current URI, so we compare URL strings
                 // Here we simply re-set the video URI, Android system will handle optimizations
                 videoView.setVideoURI(newUri)
@@ -1218,7 +1169,7 @@ private fun RenderTable(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceEvenly
                 ) {
-                    row.forEachIndexed { cellIndex, cell ->
+                    row.forEachIndexed { _, cell ->
                         Box(
                             modifier = Modifier.weight(1f).padding(8.dp),
                             contentAlignment = Alignment.Center

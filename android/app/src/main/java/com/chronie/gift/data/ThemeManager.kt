@@ -2,6 +2,7 @@ package com.chronie.gift.data
 
 import android.content.Context
 import android.content.SharedPreferences
+import androidx.core.content.edit
 
 class ThemeManager(private val context: Context) {
     companion object {
@@ -12,7 +13,7 @@ class ThemeManager(private val context: Context) {
     // Save theme setting
     fun saveTheme(themeMode: String) {
         val preferences: SharedPreferences = context.getSharedPreferences("app_preferences", Context.MODE_PRIVATE)
-        preferences.edit().putString(THEME_KEY, themeMode).apply()
+        preferences.edit { putString(THEME_KEY, themeMode) }
     }
 
     // Get saved theme setting
@@ -21,9 +22,4 @@ class ThemeManager(private val context: Context) {
         return preferences.getString(THEME_KEY, DEFAULT_THEME) ?: DEFAULT_THEME
     }
 
-    // Get current theme mode
-    fun getCurrentTheme(): String {
-        // Since Compose theme system is managed by GiftTheme, here we only return the saved theme setting
-        return getSavedTheme()
-    }
 }

@@ -17,7 +17,7 @@
     <string name="theme_auto">自動</string>
     <string name="language_switched">語言已切換為 %1$s</string>
     <string name="theme_switched">主題已切換為 %1$s</string>
-    <string name="loading_text">載入中...</string>
+    <string name="loading_text">載入中…</string>
     <string name="error_title">錯誤</string>
     <string name="please_select_file">請選擇文件</string>
     <string name="watermark_text">版權所有、禁止盗用</string>
@@ -41,7 +41,7 @@
     <string name="update_dialog_title">最新版本</string>
     <string name="update_dialog_button">立即更新（%sMB）</string>
     <string name="update_dialog_hint">下載完成後下拉通知欄點擊安裝</string>
-    <string name="update_checking">檢查更新中...</string>
+    <string name="update_checking">檢查更新中…</string>
     <string name="update_available">發現新版本</string>
     <string name="update_not_available">當前已是最新版本</string>
     <string name="update_error">檢查更新失敗</string>

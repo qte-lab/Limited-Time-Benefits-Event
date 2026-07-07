@@ -1,5 +1,6 @@
 package com.chronie.gift.ui.screens
 
+import android.annotation.SuppressLint
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.ui.draw.rotate
@@ -9,18 +10,12 @@ import androidx.compose.foundation.lazy.grid.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.*
 import androidx.compose.ui.platform.*
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.*
 import androidx.compose.ui.unit.*
 import androidx.compose.ui.res.stringResource
-import androidx.compose.foundation.text.selection.SelectionContainer
 import com.chronie.gift.ui.markdown.MarkdownRenderer
-import androidx.compose.ui.viewinterop.AndroidView
-import android.widget.TextView
 import io.ktor.client.*
 import io.ktor.client.call.*
 import io.ktor.client.engine.android.*
@@ -29,12 +24,8 @@ import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.serialization.kotlinx.json.*
 import kotlinx.serialization.*
 import com.chronie.gift.R
-import androidx.core.content.res.ResourcesCompat
 import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.TopAppBar
-import top.yukonga.miuix.kmp.basic.SmallTopAppBar
-import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
-import top.yukonga.miuix.kmp.basic.rememberTopAppBarState
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.CircularProgressIndicator
@@ -43,7 +34,6 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.basic.Surface
 import top.yukonga.miuix.kmp.window.WindowListPopup
 import top.yukonga.miuix.kmp.basic.ListPopupColumn
-import androidx.compose.ui.input.nestedscroll.nestedScroll
 
 // API model for response
 @Serializable
@@ -83,6 +73,7 @@ fun AnswersScreen() {
     }
 }
 
+@SuppressLint("ConfigurationScreenWidthHeight")
 @Composable
 fun MainContent(paddingValues: PaddingValues) {
     val baseUrl = "http://192.168.10.6:3001"
@@ -98,11 +89,8 @@ fun MainContent(paddingValues: PaddingValues) {
     val isSmallScreen = screenWidth < 600.dp
     
     // Preload all required string resources
-    val failedToGetFiles = stringResource(id = R.string.failed_to_get_files)
-    val failedToGetContent = stringResource(id = R.string.failed_to_get_content)
     val errorGettingFiles = stringResource(id = R.string.error_getting_files)
     val errorGettingContent = stringResource(id = R.string.error_getting_content)
-    val selectFileLabel = stringResource(id = R.string.please_select_file)
     val activityString = stringResource(id = R.string.activity)
 
     // Initialize - fetch markdown file list
@@ -241,7 +229,6 @@ fun MainContent(paddingValues: PaddingValues) {
                 // Sidebar
                 Sidebar(
                     files = markdownFiles,
-                    selectedFile = selectedFile,
                     onFileSelected = { file -> setSelectedFile(file) },
                     paddingValues = paddingValues
                 )
@@ -271,7 +258,6 @@ fun MainContent(paddingValues: PaddingValues) {
 @Composable
 fun Sidebar(
     files: List<String>,
-    selectedFile: String?,
     onFileSelected: (String) -> Unit,
     paddingValues: PaddingValues = PaddingValues(0.dp)
 ) {
@@ -418,7 +404,7 @@ fun getMonthName(month: String): String {
         } else {
             month
         }
-    } catch (e: Exception) {
+    } catch (_: Exception) {
         month
     }
 }

@@ -1,11 +1,7 @@
 package com.chronie.gift.ui
 
-import android.app.DownloadManager
-import android.content.Context
-import android.content.Intent
-import android.net.Uri
+import android.annotation.SuppressLint
 import android.os.Build
-import android.os.Environment
 import android.widget.Toast
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -37,10 +33,10 @@ import com.chronie.gift.data.LanguageManager
 import com.chronie.gift.data.ThemeManager
 import com.chronie.gift.data.TabManager
 import com.chronie.gift.data.UpdateChecker
+import com.chronie.gift.ui.components.FloatingBottomBar
+import com.chronie.gift.ui.components.FloatingBottomBarItem
+import com.chronie.gift.ui.components.FloatingBottomBarMode
 import com.chronie.gift.data.AppDownloadManager
-import com.chronie.gift.ui.navigation.FloatingBottomBar
-import com.chronie.gift.ui.navigation.FloatingBottomBarItem
-import com.chronie.gift.ui.navigation.FloatingBottomBarMode
 import top.yukonga.miuix.kmp.blur.rememberLayerBackdrop
 import top.yukonga.miuix.kmp.blur.layerBackdrop
 import com.chronie.gift.ui.components.UpdateDialog
@@ -55,13 +51,11 @@ import com.chronie.gift.ui.theme.GiftTheme
 import com.chronie.gift.ui.theme.ThemeController
 import com.chronie.gift.ui.theme.LanguageController
 import top.yukonga.miuix.kmp.icon.MiuixIcons
-import top.yukonga.miuix.kmp.icon.extended.HorizontalSplit
-import top.yukonga.miuix.kmp.icon.extended.ListView
-import top.yukonga.miuix.kmp.icon.extended.Settings
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.launch
 
+@SuppressLint("LocalContextGetResourceValueCall")
 @Composable
 fun GiftApp() {
     val context = LocalContext.current
@@ -133,13 +127,13 @@ fun GiftApp() {
     val currentVersion = remember {
         try {
             context.packageManager.getPackageInfo(context.packageName, 0).versionName ?: "1.0.0"
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             "1.0.0"
         }
     }
     
     // Check for updates function
-    val checkForUpdates = suspend { ->
+    val checkForUpdates = suspend {
         isCheckingUpdate = true
         try {
             val updateChecker = UpdateChecker()
@@ -179,9 +173,9 @@ fun GiftApp() {
     // Navigate to saved tab when app starts
     LaunchedEffect(savedTab) {
         when (savedTab) {
-            NavRoutes.Home -> navController.navigate(NavRoutes.Home)
-            NavRoutes.Answers -> navController.navigate(NavRoutes.Answers)
-            NavRoutes.Settings -> navController.navigate(NavRoutes.Settings)
+            NavRoutes.HOME -> navController.navigate(NavRoutes.HOME)
+            NavRoutes.ANSWERS -> navController.navigate(NavRoutes.ANSWERS)
+            NavRoutes.SETTINGS -> navController.navigate(NavRoutes.SETTINGS)
         }
     }
     
@@ -201,7 +195,7 @@ fun GiftApp() {
     // Move GiftTheme call here to ensure theme changes are applied immediately
     GiftTheme(controller = controller, languageController = languageController) {
         val backdrop = rememberLayerBackdrop()
-        androidx.compose.foundation.layout.Box(modifier = Modifier.fillMaxSize()) {
+        Box(modifier = Modifier.fillMaxSize()) {
             Scaffold(
                 modifier = Modifier.fillMaxSize(),
                 bottomBar = {
@@ -216,25 +210,25 @@ fun GiftApp() {
                         modifier = Modifier.fillMaxWidth(0.8f),
                         selectedIndex = {
                             when (selectedTab) {
-                                NavRoutes.Home -> 0
-                                NavRoutes.Answers -> 1
-                                NavRoutes.Settings -> 2
+                                NavRoutes.HOME -> 0
+                                NavRoutes.ANSWERS -> 1
+                                NavRoutes.SETTINGS -> 2
                                 else -> 0
                             }
                         },
                         onSelected = { index ->
                             val tab = when (index) {
-                                0 -> NavRoutes.Home
-                                1 -> NavRoutes.Answers
-                                2 -> NavRoutes.Settings
-                                else -> NavRoutes.Home
+                                0 -> NavRoutes.HOME
+                                1 -> NavRoutes.ANSWERS
+                                2 -> NavRoutes.SETTINGS
+                                else -> NavRoutes.HOME
                             }
                             selectedTab = tab
                             tabManager.saveTab(tab)
                             when (tab) {
-                                NavRoutes.Home -> navController.navigate(NavRoutes.Home)
-                                NavRoutes.Answers -> navController.navigate(NavRoutes.Answers)
-                                NavRoutes.Settings -> navController.navigate(NavRoutes.Settings)
+                                NavRoutes.HOME -> navController.navigate(NavRoutes.HOME)
+                                NavRoutes.ANSWERS -> navController.navigate(NavRoutes.ANSWERS)
+                                NavRoutes.SETTINGS -> navController.navigate(NavRoutes.SETTINGS)
                             }
                         },
                         backdrop = backdrop,
@@ -247,10 +241,10 @@ fun GiftApp() {
                     ) {
                         FloatingBottomBarItem(
                             onClick = {
-                                val tab = NavRoutes.Home
+                                val tab = NavRoutes.HOME
                                 selectedTab = tab
                                 tabManager.saveTab(tab)
-                                navController.navigate(NavRoutes.Home)
+                                navController.navigate(NavRoutes.HOME)
                             }
                         ) {
                             Icon(
@@ -261,10 +255,10 @@ fun GiftApp() {
                         }
                         FloatingBottomBarItem(
                             onClick = {
-                                val tab = NavRoutes.Answers
+                                val tab = NavRoutes.ANSWERS
                                 selectedTab = tab
                                 tabManager.saveTab(tab)
-                                navController.navigate(NavRoutes.Answers)
+                                navController.navigate(NavRoutes.ANSWERS)
                             }
                         ) {
                             Icon(
@@ -275,10 +269,10 @@ fun GiftApp() {
                         }
                         FloatingBottomBarItem(
                             onClick = {
-                                val tab = NavRoutes.Settings
+                                val tab = NavRoutes.SETTINGS
                                 selectedTab = tab
                                 tabManager.saveTab(tab)
-                                navController.navigate(NavRoutes.Settings)
+                                navController.navigate(NavRoutes.SETTINGS)
                             }
                         ) {
                             Icon(
@@ -294,15 +288,15 @@ fun GiftApp() {
                 Box(Modifier.layerBackdrop(backdrop)) {
                     NavHost(
                         navController = navController,
-                        startDestination = NavRoutes.Home,
+                        startDestination = NavRoutes.HOME,
                     ) {
-                        composable(NavRoutes.Home) {
+                        composable(NavRoutes.HOME) {
                             HomeScreen()
                         }
-                        composable(NavRoutes.Answers) {
+                        composable(NavRoutes.ANSWERS) {
                             AnswersScreen()
                         }
-                        composable(NavRoutes.Settings) {
+                        composable(NavRoutes.SETTINGS) {
                             SettingsScreen(
                                 onThemeUpdated = updateThemeMode,
                                 onLanguageUpdated = updateLanguageCode,
@@ -315,11 +309,11 @@ fun GiftApp() {
                                 },
                                 isCheckingUpdate = isCheckingUpdate,
                                 onNavigateToLicenses = {
-                                    navController.navigate(NavRoutes.Licenses)
+                                    navController.navigate(NavRoutes.LICENSES)
                                 }
                             )
                         }
-                        composable(NavRoutes.Licenses) {
+                        composable(NavRoutes.LICENSES) {
                             LicensesScreen(
                                 onBack = {
                                     navController.popBackStack()
@@ -333,7 +327,6 @@ fun GiftApp() {
             // Update dialog - placed outside Scaffold but inside Box to ensure correct z-order
             UpdateDialog(
                 show = showUpdateDialog,
-                version = latestVersion,
                 changelog = changelog,
                 fileSize = fileSize,
                 onUpdate = handleUpdate,

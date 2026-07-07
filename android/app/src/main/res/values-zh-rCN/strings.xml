@@ -17,7 +17,7 @@
     <string name="theme_auto">自动</string>
     <string name="language_switched">语言已切换为 %1$s</string>
     <string name="theme_switched">主题已切换为 %1$s</string>
-    <string name="loading_text">加载中...</string>
+    <string name="loading_text">加载中…</string>
     <string name="error_title">错误</string>
     <string name="please_select_file">请选择一个文件</string>
     <string name="watermark_text">版权所有，盗用必究</string>
@@ -41,7 +41,7 @@
     <string name="update_dialog_title">最新版本</string>
     <string name="update_dialog_button">立即更新（%sMB）</string>
     <string name="update_dialog_hint">下载完成后下拉通知栏点击安装</string>
-    <string name="update_checking">检查更新中...</string>
+    <string name="update_checking">检查更新中…</string>
     <string name="update_available">发现新版本</string>
     <string name="update_not_available">当前已是最新版本</string>
     <string name="update_error">检查更新失败</string>

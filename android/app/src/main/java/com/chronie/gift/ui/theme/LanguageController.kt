@@ -1,7 +1,6 @@
 package com.chronie.gift.ui.theme
 
 import android.content.res.Resources
-import android.os.Build
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -18,12 +17,7 @@ class LanguageController(
         get() = if (languageCode == null) {
             // Use system default language from system resources
             val systemConfig = Resources.getSystem().configuration
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                systemConfig.locales[0]
-            } else {
-                @Suppress("DEPRECATION")
-                systemConfig.locale
-            }
+            systemConfig.locales[0]
         } else {
             when (languageCode) {
                 "en" -> Locale.ENGLISH

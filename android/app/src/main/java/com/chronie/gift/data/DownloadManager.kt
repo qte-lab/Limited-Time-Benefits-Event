@@ -5,10 +5,11 @@ import android.content.Context
 import android.net.Uri
 import android.os.Environment
 import com.chronie.gift.R
+import androidx.core.net.toUri
 
 class AppDownloadManager(private val context: Context) {
     fun downloadApk(url: String, fileName: String): Long {
-        val request = DownloadManager.Request(Uri.parse(url))
+        val request = DownloadManager.Request(url.toUri())
             .setTitle(context.getString(R.string.update_notification_title))
             .setDescription(context.getString(R.string.update_notification_description))
             .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)

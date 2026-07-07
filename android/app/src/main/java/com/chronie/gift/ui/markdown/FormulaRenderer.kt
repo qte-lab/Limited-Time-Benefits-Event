@@ -6,18 +6,9 @@ import androidx.compose.foundation.rememberScrollState
 import top.yukonga.miuix.kmp.basic.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.drawscope.DrawScope
-import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
-import androidx.compose.ui.graphics.nativeCanvas
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.*
 import androidx.compose.ui.Alignment
 import top.yukonga.miuix.kmp.theme.MiuixTheme
@@ -405,7 +396,7 @@ internal fun preprocessMathFormula(formula: String): String {
     result = result.replace("\\qquad", "    ")
 
     // Remove remaining unknown commands but keep their arguments if possible
-    result = result.replace(Regex("\\\\([a-zA-Z]+)")) { match ->
+    result = result.replace(Regex("\\\\([a-zA-Z]+)")) { _ ->
         ""  // Remove unknown commands
     }
 
@@ -746,8 +737,7 @@ private fun handleSubscripts(formula: String): String {
     // Handle single character subscripts: _x
     val singleSubscriptRegex = Regex("_([0-9a-zA-Z])")
     result = singleSubscriptRegex.replace(result) { match ->
-        val char = match.groupValues[1][0]
-        val subscript = when (char) {
+        val subscript = when (val char = match.groupValues[1][0]) {
             '0' -> '₀'
             '1' -> '₁'
             '2' -> '₂'
@@ -864,8 +854,7 @@ private fun handleSuperscripts(formula: String): String {
     // Handle single character superscripts: ^x
     val singleSuperscriptRegex = Regex("\\^([0-9a-zA-Z+-=()])")
     result = singleSuperscriptRegex.replace(result) { match ->
-        val char = match.groupValues[1][0]
-        val superscript = when (char) {
+        val superscript = when (val char = match.groupValues[1][0]) {
             '0' -> '⁰'
             '1' -> '¹'
             '2' -> '²'
@@ -1144,35 +1133,35 @@ private fun handleMatrices(formula: String): String {
     var result = formula
 
     // Handle bmatrix (square brackets)
-    val bmatrixRegex = Regex("\\\\begin\\{bmatrix\\}([^\\}]+)\\\\end\\{bmatrix\\}")
+    val bmatrixRegex = Regex("\\\\begin\\{bmatrix\\}([^}]+)\\\\end\\{bmatrix\\}")
     result = bmatrixRegex.replace(result) { match ->
         val content = match.groupValues[1]
         formatMatrix(content, "[", "]")
     }
 
     // Handle pmatrix (parentheses)
-    val pmatrixRegex = Regex("\\\\begin\\{pmatrix\\}([^\\}]+)\\\\end\\{pmatrix\\}")
+    val pmatrixRegex = Regex("\\\\begin\\{pmatrix\\}([^}]+)\\\\end\\{pmatrix\\}")
     result = pmatrixRegex.replace(result) { match ->
         val content = match.groupValues[1]
         formatMatrix(content, "(", ")")
     }
 
     // Handle vmatrix (vertical bars, for determinants)
-    val vmatrixRegex = Regex("\\\\begin\\{vmatrix\\}([^\\}]+)\\\\end\\{vmatrix\\}")
+    val vmatrixRegex = Regex("\\\\begin\\{vmatrix\\}([^}]+)\\\\end\\{vmatrix\\}")
     result = vmatrixRegex.replace(result) { match ->
         val content = match.groupValues[1]
         formatMatrix(content, "|", "|")
     }
 
     // Handle Bmatrix (curly braces)
-    val BmatrixRegex = Regex("\\\\begin\\{Bmatrix\\}([^\\}]+)\\\\end\\{Bmatrix\\}")
-    result = BmatrixRegex.replace(result) { match ->
+    val bmatrixregex = Regex("\\\\begin\\{Bmatrix\\}([^}]+)\\\\end\\{Bmatrix\\}")
+    result = bmatrixregex.replace(result) { match ->
         val content = match.groupValues[1]
         formatMatrix(content, "{", "}")
     }
 
     // Handle simple matrix without environment
-    val simpleMatrixRegex = Regex("\\\\begin\\{matrix\\}([^\\}]+)\\\\end\\{matrix\\}")
+    val simpleMatrixRegex = Regex("\\\\begin\\{matrix\\}([^}]+)\\\\end\\{matrix\\}")
     result = simpleMatrixRegex.replace(result) { match ->
         val content = match.groupValues[1]
         formatMatrix(content, "", "")
@@ -1205,7 +1194,7 @@ private fun handleCases(formula: String): String {
     var result = formula
 
     // Handle \begin{cases} ... \end{cases}
-    val casesRegex = Regex("\\\\begin\\{cases\\}([^\\}]+)\\\\end\\{cases\\}")
+    val casesRegex = Regex("\\\\begin\\{cases\\}([^}]+)\\\\end\\{cases\\}")
     result = casesRegex.replace(result) { match ->
         val content = match.groupValues[1]
         formatCases(content)

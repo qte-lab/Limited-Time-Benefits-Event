@@ -1,7 +1,5 @@
 package com.chronie.gift.ui.markdown
 
-import kotlinx.serialization.Serializable
-
 // Base interface for Markdown AST nodes
 sealed interface MarkdownNode
 

@@ -103,14 +103,14 @@ dependencies {
     debugImplementation(libs.androidx.compose.ui.test.manifest)
 
     // HTTP client libraries
-    implementation("io.ktor:ktor-client-core:3.5.1")
-    implementation("io.ktor:ktor-client-android:3.5.1")
-    implementation("io.ktor:ktor-client-content-negotiation:3.5.1")
-    implementation("io.ktor:ktor-serialization-kotlinx-json:3.5.1")
+    implementation(libs.ktor.client.core)
+    implementation(libs.ktor.client.android)
+    implementation(libs.ktor.client.content.negotiation)
+    implementation(libs.ktor.serialization.kotlinx.json)
     
     // Image loading library
-    implementation("io.coil-kt.coil3:coil-compose:3.5.0")
-    implementation("io.coil-kt.coil3:coil-network-okhttp:3.5.0")
+    implementation(libs.coil.compose)
+    implementation(libs.coil.network.okhttp)
     
     // Miuix dependencies
     implementation(libs.miuix.ui)
