@@ -171,8 +171,13 @@ Example `activities.json`:
 {
   "activities": [
     {
-      "title": "Activity Title",
-      "url": "https://example.com"
+      "id": "activity-001",
+      "title": "Summer Sale",
+      "startTime": "2026-07-01 00:00:00",
+      "endTime": "2026-07-31 23:59:59",
+      "url": "https://example.com/summer-sale",
+      "description": "Up to 50% off on selected items",
+      "type": "promotion"
     }
   ]
 }
