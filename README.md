@@ -267,7 +267,7 @@ PORT=3001 ./gift-server.exe
 
 ### API Base URL
 
-The Android app's API base URL is configured in `UpdateChecker.kt`. The current default URL is `http://192.168.10.6:3001`. Update the `apiBaseUrl` variable to match your server address.
+The Android app's API base URL is configured in `UpdateChecker.kt`. The current default URL is `http://192.168.10.9:3001`. Update the `apiBaseUrl` variable to match your server address.
 
 ## Building
 
