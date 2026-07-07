@@ -53,6 +53,7 @@
     <string name="version_info">版本信息</string>
     <string name="update_check_manually">检查更新</string>
     <string name="update_no_new_version">当前已是最新版本</string>
+    <string name="update_version_name">版本 %s</string>
     <string name="legal_settings">法律</string>
     <string name="open_source_licenses">开源软件许可证</string>
     <string name="licenses_title">开源软件许可证</string>

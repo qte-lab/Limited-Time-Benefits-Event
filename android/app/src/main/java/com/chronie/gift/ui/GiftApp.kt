@@ -327,6 +327,7 @@ fun GiftApp() {
             // Update dialog - placed outside Scaffold but inside Box to ensure correct z-order
             UpdateDialog(
                 show = showUpdateDialog,
+                versionName = latestVersion,
                 changelog = changelog,
                 fileSize = fileSize,
                 onUpdate = handleUpdate,

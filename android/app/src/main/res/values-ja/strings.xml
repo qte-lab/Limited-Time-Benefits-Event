@@ -53,6 +53,7 @@
     <string name="version_info">バージョン情報</string>
     <string name="update_check_manually">更新をチェック</string>
     <string name="update_no_new_version">現在最新のバージョンをお使いです</string>
+    <string name="update_version_name">バージョン %s</string>
     <string name="legal_settings">法的情報</string>
     <string name="open_source_licenses">オープンソースライセンス</string>
     <string name="licenses_title">オープンソースライセンス</string>

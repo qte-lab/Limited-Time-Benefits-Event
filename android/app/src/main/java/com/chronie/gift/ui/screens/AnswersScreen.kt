@@ -34,8 +34,9 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.basic.Surface
 import top.yukonga.miuix.kmp.window.WindowListPopup
 import top.yukonga.miuix.kmp.basic.ListPopupColumn
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
-// API model for response
 @Serializable
 data class ApiResponse<T>(
     val success: Boolean,
@@ -43,18 +44,46 @@ data class ApiResponse<T>(
     val message: String? = null
 )
 
-// Markdown file content model
 @Serializable
 data class MarkdownContent(
     val filename: String,
     val content: String
 )
 
-// Singleton HTTP client
 object ApiClient {
+    private const val MAX_CONTENT_LENGTH = 500000
+    
     val client = HttpClient(Android) {
         install(ContentNegotiation) {
             json()
+        }
+        engine {
+            connectTimeout = 10000
+            socketTimeout = 30000
+        }
+    }
+
+    suspend fun fetchMarkdownContent(baseUrl: String, filename: String): String {
+        val response = client.get("$baseUrl/api/outdate-test/markdown/$filename")
+        val apiResponse = response.body<ApiResponse<MarkdownContent>>()
+        if (apiResponse.success) {
+            val content = apiResponse.data.content
+            if (content.length > MAX_CONTENT_LENGTH) {
+                return content.substring(0, MAX_CONTENT_LENGTH)
+            }
+            return content
+        } else {
+            throw Exception("API returned success=false")
+        }
+    }
+
+    suspend fun fetchMarkdownFiles(baseUrl: String): List<String> {
+        val response = client.get("$baseUrl/api/outdate-test/markdown")
+        val apiResponse = response.body<ApiResponse<List<String>>>()
+        if (apiResponse.success) {
+            return apiResponse.data.take(50)
+        } else {
+            throw Exception("API returned success=false")
         }
     }
 }
@@ -83,22 +112,21 @@ fun MainContent(paddingValues: PaddingValues) {
     val (isLoading, setIsLoading) = remember { mutableStateOf(false) }
     val (errorMessage, setErrorMessage) = remember { mutableStateOf<String?>(null) }
     
-    // Responsive layout - get screen width
     val configuration = LocalConfiguration.current
     val screenWidth = configuration.screenWidthDp.dp
     val isSmallScreen = screenWidth < 600.dp
-    
-    // Preload all required string resources
+
     val errorGettingFiles = stringResource(id = R.string.error_getting_files)
     val errorGettingContent = stringResource(id = R.string.error_getting_content)
     val activityString = stringResource(id = R.string.activity)
 
-    // Initialize - fetch markdown file list
     LaunchedEffect(Unit) {
         setIsLoading(true)
         setErrorMessage(null)
         try {
-            val files = fetchMarkdownFiles(baseUrl)
+            val files = withContext(Dispatchers.IO) {
+                ApiClient.fetchMarkdownFiles(baseUrl)
+            }
             setMarkdownFiles(files)
             if (files.isNotEmpty()) {
                 setSelectedFile(files.first())
@@ -106,45 +134,46 @@ fun MainContent(paddingValues: PaddingValues) {
         } catch (e: Exception) {
             val errorMsg = "$errorGettingFiles: ${e.message ?: ""}"
             setErrorMessage(errorMsg)
-            e.printStackTrace()
         } finally {
             setIsLoading(false)
         }
     }
     
-    // When selected file changes, fetch its content
     LaunchedEffect(selectedFile) {
         if (selectedFile != null) {
             setIsLoading(true)
             setErrorMessage(null)
             try {
-                val content = fetchMarkdownContent(baseUrl, selectedFile)
+                val content = withContext(Dispatchers.IO) {
+                    ApiClient.fetchMarkdownContent(baseUrl, selectedFile)
+                }
                 setMarkdownContent(content)
             } catch (e: Exception) {
                 val errorMsg = "$errorGettingContent: ${e.message ?: ""}"
                 setErrorMessage(errorMsg)
-                e.printStackTrace()
             } finally {
                 setIsLoading(false)
             }
         }
     }
 
+    DisposableEffect(Unit) {
+        onDispose {
+            setMarkdownContent(null)
+        }
+    }
+
     Box(modifier = Modifier.fillMaxSize()) {
-        // Watermark
         Watermark()
 
         if (isSmallScreen) {
-            // Small screen layout - dropdown menu at top
             Column(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(top = paddingValues.calculateTopPadding())
             ) {
-                // Add small space below largeTitle
                 Spacer(modifier = Modifier.height(8.dp))
                 
-                // Top dropdown menu
                 if (markdownFiles.isNotEmpty() && selectedFile != null) {
                     val selectedIndex = markdownFiles.indexOf(selectedFile)
                     val (year, month, activity) = parseFilename(selectedFile)
@@ -209,7 +238,6 @@ fun MainContent(paddingValues: PaddingValues) {
                     }
                 }
                 
-                // Content area
                 Box(
                     modifier = Modifier
                         .weight(1f)
@@ -224,22 +252,18 @@ fun MainContent(paddingValues: PaddingValues) {
                 }
             }
         } else {
-            // Large screen layout - sidebar on left
             Row(modifier = Modifier.fillMaxSize()) {
-                // Sidebar
                 Sidebar(
                     files = markdownFiles,
                     onFileSelected = { file -> setSelectedFile(file) },
                     paddingValues = paddingValues
                 )
 
-                // Content area
                 Box(
                     modifier = Modifier
                         .weight(1f)
                 ) {
                     Column {
-                        // Add small space below largeTitle
                         Spacer(modifier = Modifier.height(8.dp))
                         
                         ContentArea(
@@ -347,7 +371,6 @@ fun ContentArea(
             }
             content != null -> {
                 Box(modifier = Modifier.fillMaxSize()) {
-                    // Use custom Markdown renderer to render content
                     MarkdownRenderer(markdown = content)
                 }
             }
@@ -364,9 +387,7 @@ fun ContentArea(
     }
 }
 
-// Parse filename to extract year, month, and activity
 fun parseFilename(filename: String): Triple<String, String, String> {
-    // filename format: 251001.md -> 2025.10 activity1
     val match = Regex("^(\\d{2})(\\d{2})(\\d{2})\\.md$").matchEntire(filename)
     if (match != null) {
         val year = "20${match.groupValues[1]}"
@@ -377,10 +398,8 @@ fun parseFilename(filename: String): Triple<String, String, String> {
     return Triple("", "", "")
 }
 
-// Get month name from month number
 @Composable
 fun getMonthName(month: String): String {
-    // Map month number to name
     val monthNames = listOf(
         stringResource(id = R.string.month_1),
         stringResource(id = R.string.month_2),
@@ -396,7 +415,6 @@ fun getMonthName(month: String): String {
         stringResource(id = R.string.month_12)
     )
     
-    // Convert month string to number index
     return try {
         val monthIndex = month.toInt() - 1
         if (monthIndex in 0..11) {
@@ -409,39 +427,14 @@ fun getMonthName(month: String): String {
     }
 }
 
-// Get list of Markdown files
-suspend fun fetchMarkdownFiles(baseUrl: String): List<String> {
-    val response = ApiClient.client.get("$baseUrl/api/outdate-test/markdown")
-    val apiResponse = response.body<ApiResponse<List<String>>>()
-    if (apiResponse.success) {
-        return apiResponse.data
-    } else {
-        throw Exception("API returned success=false")
-    }
-}
-
-// Get Markdown file content
-suspend fun fetchMarkdownContent(baseUrl: String, filename: String): String {
-    val response = ApiClient.client.get("$baseUrl/api/outdate-test/markdown/$filename")
-    val apiResponse = response.body<ApiResponse<MarkdownContent>>()
-    if (apiResponse.success) {
-        return apiResponse.data.content
-    } else {
-        throw Exception("API returned success=false")
-    }
-}
-
-// Watermark component
 @Composable
 fun Watermark() {
     val watermarkText = stringResource(id = R.string.watermark_text)
     val rows = 4
     val cols = 1
     
-    // Responsive font size, similar to CSS clamp(1rem, 3vw, 2.2rem)
     val fontSize = 24.sp
     
-    // Use grid layout to create multiple small watermarks
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -476,4 +469,3 @@ fun Watermark() {
         )
     }
 }
-

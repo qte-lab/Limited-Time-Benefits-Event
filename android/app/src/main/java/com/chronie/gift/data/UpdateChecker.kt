@@ -9,11 +9,13 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
 class UpdateChecker {
-    private val client = HttpClient {
-        install(ContentNegotiation) {
-            json(Json {
-                ignoreUnknownKeys = true
-            })
+    private val client by lazy {
+        HttpClient {
+            install(ContentNegotiation) {
+                json(Json {
+                    ignoreUnknownKeys = true
+                })
+            }
         }
     }
 
@@ -29,17 +31,18 @@ class UpdateChecker {
     )
 
     suspend fun checkForUpdates(currentVersion: String): UpdateInfo? {
-        try {
-            // Use configurable API address
+        return try {
             val apiBaseUrl = "http://192.168.10.6:3001"
             val response = client.get("$apiBaseUrl/api/download_apk").body<UpdateResponse>()
             
             if (response.success && response.versionName != null) {
                 val latestVersion = response.versionName
                 if (isNewVersionAvailable(currentVersion, latestVersion)) {
-                    // Get changelog for current language
                     val languageCode = getCurrentLanguageCode()
-                    val changelogContent = response.changelog?.get(languageCode) ?: response.changelog?.get("en") ?: ""
+                    val changelogContent = response.changelog?.get(languageCode) 
+                        ?: response.changelog?.get("zh-cn") 
+                        ?: response.changelog?.get("en") 
+                        ?: ""
                     
                     return UpdateInfo(
                         versionCode = response.versionCode ?: 0,
@@ -50,12 +53,11 @@ class UpdateChecker {
                     )
                 }
             }
+            null
         } catch (e: Exception) {
             e.printStackTrace()
-        } finally {
-            client.close()
+            null
         }
-        return null
     }
 
     private fun getCurrentLanguageCode(): String {
@@ -72,37 +74,40 @@ class UpdateChecker {
     }
 
     private fun isNewVersionAvailable(currentVersion: String, latestVersion: String): Boolean {
-        try {
-            // Current version format: 1.yyyymmdd.hhmm
-            // Latest version format: 1.yyyymmdd.hhmm.apk
-            val currentParts = currentVersion.split(".")
-            val latestParts = latestVersion.removeSuffix(".apk").split(".")
-
-            if (currentParts.size < 3 || latestParts.size < 3) {
+        return try {
+            val currentClean = currentVersion.trim()
+            val latestClean = latestVersion.removeSuffix(".apk").trim()
+            
+            if (currentClean.isEmpty() || latestClean.isEmpty()) {
                 return false
             }
 
-            val currentVersionNum = currentParts[0].toInt()
-            val currentDate = currentParts[1].toLong()
-            val currentTime = currentParts[2].toInt()
+            val currentParts = currentClean.split(".")
+            val latestParts = latestClean.split(".")
 
-            val latestVersionNum = latestParts[0].toInt()
-            val latestDate = latestParts[1].toLong()
-            val latestTime = latestParts[2].toInt()
+            val maxLen = maxOf(currentParts.size, latestParts.size)
+            
+            for (i in 0 until maxLen) {
+                val currentPart = if (i < currentParts.size) currentParts[i] else "0"
+                val latestPart = if (i < latestParts.size) latestParts[i] else "0"
 
-            if (latestVersionNum > currentVersionNum) {
-                return true
-            } else if (latestVersionNum == currentVersionNum) {
-                if (latestDate > currentDate) {
-                    return true
-                } else if (latestDate == currentDate) {
-                    return latestTime > currentTime
+                val currentNum = currentPart.toLongOrNull()
+                val latestNum = latestPart.toLongOrNull()
+
+                if (currentNum != null && latestNum != null) {
+                    if (latestNum > currentNum) return true
+                    if (latestNum < currentNum) return false
+                } else {
+                    val compare = currentPart.compareTo(latestPart)
+                    if (compare < 0) return true
+                    if (compare > 0) return false
                 }
             }
+            false
         } catch (e: Exception) {
             e.printStackTrace()
+            false
         }
-        return false
     }
 
     data class UpdateInfo(

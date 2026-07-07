@@ -14,10 +14,12 @@ import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextButton
 import top.yukonga.miuix.kmp.window.WindowDialog
 import top.yukonga.miuix.kmp.theme.LocalDismissState
+import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 @Composable
 fun UpdateDialog(
     show: Boolean,
+    versionName: String,
     changelog: String,
     fileSize: String,
     onUpdate: () -> Unit,
@@ -39,6 +41,17 @@ fun UpdateDialog(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
+                Box(
+                    modifier = Modifier.fillMaxWidth(),
+                    contentAlignment = androidx.compose.ui.Alignment.Center
+                ) {
+                    Text(
+                        text = stringResource(R.string.update_version_name).format(versionName),
+                        style = MiuixTheme.textStyles.body2,
+                        color = MiuixTheme.colorScheme.primary
+                    )
+                }
+                
                 TextButton(
                     text = stringResource(R.string.update_dialog_button).format(fileSize),
                     onClick = {
@@ -56,8 +69,8 @@ fun UpdateDialog(
                 ) {
                     Text(
                         text = stringResource(R.string.update_dialog_hint),
-                        style = top.yukonga.miuix.kmp.theme.MiuixTheme.textStyles.body2,
-                        color = top.yukonga.miuix.kmp.theme.MiuixTheme.colorScheme.onSurfaceContainerVariant
+                        style = MiuixTheme.textStyles.body2,
+                        color = MiuixTheme.colorScheme.onSurfaceContainerVariant
                     )
                 }
             }
