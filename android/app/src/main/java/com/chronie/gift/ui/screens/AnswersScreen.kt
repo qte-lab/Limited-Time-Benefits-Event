@@ -25,8 +25,7 @@ import io.ktor.serialization.kotlinx.json.*
 import kotlinx.serialization.*
 import com.chronie.gift.R
 import top.yukonga.miuix.kmp.basic.Scaffold
-import top.yukonga.miuix.kmp.basic.TopAppBar
-import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
+import top.yukonga.miuix.kmp.basic.SmallTopAppBar
 import top.yukonga.miuix.kmp.basic.PullToRefresh
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.Text
@@ -283,13 +282,10 @@ fun ContentArea(
 
 @Composable
 fun AnswersScreen() {
-    val scrollBehavior = MiuixScrollBehavior()
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = stringResource(id = R.string.tab_answers),
-                largeTitle = stringResource(id = R.string.tab_answers),
-                scrollBehavior = scrollBehavior
+            SmallTopAppBar(
+                title = stringResource(id = R.string.tab_answers)
             )
         }
     ) { paddingValues ->
@@ -315,7 +311,7 @@ fun MainContent(paddingValues: PaddingValues) {
     val errorGettingContent = stringResource(id = R.string.error_getting_content)
     val activityString = stringResource(id = R.string.activity)
 
-    var refreshTrigger by remember { mutableStateOf(0) }
+    var refreshTrigger by remember { mutableIntStateOf(0) }
 
     val refreshData = suspend {
         setIsLoading(true)

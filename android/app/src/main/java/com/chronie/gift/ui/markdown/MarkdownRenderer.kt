@@ -89,7 +89,8 @@ fun MarkdownRenderer(markdown: String) {
     SelectionContainer {
         LazyColumn(
             modifier = Modifier.fillMaxWidth().padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+            contentPadding = PaddingValues(bottom = 80.dp)
         ) {
             items(parseResult.nodes.size) { index ->
                 val node = parseResult.nodes[index]
