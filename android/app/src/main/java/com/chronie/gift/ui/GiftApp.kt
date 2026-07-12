@@ -29,6 +29,11 @@ import androidx.compose.ui.res.stringResource
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import com.chronie.gift.data.LanguageManager
 import com.chronie.gift.data.ThemeManager
 import com.chronie.gift.data.TabManager
@@ -292,6 +297,30 @@ fun GiftApp() {
                     NavHost(
                         navController = navController,
                         startDestination = NavRoutes.HOME,
+                        enterTransition = {
+                            slideInHorizontally(
+                                initialOffsetX = { it },
+                                animationSpec = tween(300)
+                            ) + fadeIn(animationSpec = tween(300))
+                        },
+                        exitTransition = {
+                            slideOutHorizontally(
+                                targetOffsetX = { -it },
+                                animationSpec = tween(300)
+                            ) + fadeOut(animationSpec = tween(300))
+                        },
+                        popEnterTransition = {
+                            slideInHorizontally(
+                                initialOffsetX = { -it },
+                                animationSpec = tween(300)
+                            ) + fadeIn(animationSpec = tween(300))
+                        },
+                        popExitTransition = {
+                            slideOutHorizontally(
+                                targetOffsetX = { it },
+                                animationSpec = tween(300)
+                            ) + fadeOut(animationSpec = tween(300))
+                        }
                     ) {
                         composable(NavRoutes.HOME) {
                             HomeScreen()
