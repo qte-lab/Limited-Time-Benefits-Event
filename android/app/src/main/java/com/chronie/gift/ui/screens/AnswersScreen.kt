@@ -373,8 +373,6 @@ fun MainContent(paddingValues: PaddingValues) {
                         .fillMaxSize()
                         .padding(top = paddingValues.calculateTopPadding())
                 ) {
-                    Spacer(modifier = Modifier.height(8.dp))
-
                     if (markdownFiles.isNotEmpty() && selectedFile != null) {
                         val selectedIndex = markdownFiles.indexOf(selectedFile)
                         val (year, month, activity) = parseFilename(selectedFile)
@@ -396,7 +394,7 @@ fun MainContent(paddingValues: PaddingValues) {
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 8.dp)
+                                .padding(horizontal = 16.dp)
                         ) {
                             Card(
                                 modifier = Modifier.fillMaxWidth(),
