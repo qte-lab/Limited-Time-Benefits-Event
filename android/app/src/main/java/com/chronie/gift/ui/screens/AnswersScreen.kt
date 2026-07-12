@@ -26,6 +26,8 @@ import kotlinx.serialization.*
 import com.chronie.gift.R
 import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.TopAppBar
+import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
+import top.yukonga.miuix.kmp.basic.PullToRefresh
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.CircularProgressIndicator
@@ -88,194 +90,86 @@ object ApiClient {
     }
 }
 
+fun parseFilename(filename: String): Triple<String, String, String> {
+    val match = Regex("^(\\d{2})(\\d{2})(\\d{2})\\.md$").matchEntire(filename)
+    if (match != null) {
+        val year = "20${match.groupValues[1]}"
+        val month = match.groupValues[2]
+        val activity = match.groupValues[3]
+        return Triple(year, month, activity)
+    }
+    return Triple("", "", "")
+}
+
 @Composable
-fun AnswersScreen() {
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = stringResource(id = R.string.tab_answers),
-                largeTitle = stringResource(id = R.string.tab_answers)
-            )
+fun getMonthName(month: String): String {
+    val monthNames = listOf(
+        stringResource(id = R.string.month_1),
+        stringResource(id = R.string.month_2),
+        stringResource(id = R.string.month_3),
+        stringResource(id = R.string.month_4),
+        stringResource(id = R.string.month_5),
+        stringResource(id = R.string.month_6),
+        stringResource(id = R.string.month_7),
+        stringResource(id = R.string.month_8),
+        stringResource(id = R.string.month_9),
+        stringResource(id = R.string.month_10),
+        stringResource(id = R.string.month_11),
+        stringResource(id = R.string.month_12)
+    )
+    
+    return try {
+        val monthIndex = month.toInt() - 1
+        if (monthIndex in 0..11) {
+            monthNames[monthIndex]
+        } else {
+            month
         }
-    ) { paddingValues ->
-        MainContent(paddingValues = paddingValues)
+    } catch (_: Exception) {
+        month
     }
 }
 
-@SuppressLint("ConfigurationScreenWidthHeight")
 @Composable
-fun MainContent(paddingValues: PaddingValues) {
-    val baseUrl = "http://192.168.10.9:3002"
-    val (markdownFiles, setMarkdownFiles) = remember { mutableStateOf<List<String>>(emptyList()) }
-    val (selectedFile, setSelectedFile) = remember { mutableStateOf<String?>(null) }
-    val (markdownContent, setMarkdownContent) = remember { mutableStateOf<String?>(null) }
-    val (isLoading, setIsLoading) = remember { mutableStateOf(false) }
-    val (errorMessage, setErrorMessage) = remember { mutableStateOf<String?>(null) }
+fun Watermark() {
+    val watermarkText = stringResource(id = R.string.watermark_text)
+    val rows = 4
+    val cols = 1
     
-    val configuration = LocalConfiguration.current
-    val screenWidth = configuration.screenWidthDp.dp
-    val isSmallScreen = screenWidth < 600.dp
-
-    val errorGettingFiles = stringResource(id = R.string.error_getting_files)
-    val errorGettingContent = stringResource(id = R.string.error_getting_content)
-    val activityString = stringResource(id = R.string.activity)
-
-    LaunchedEffect(Unit) {
-        setIsLoading(true)
-        setErrorMessage(null)
-        try {
-            val files = withContext(Dispatchers.IO) {
-                ApiClient.fetchMarkdownFiles(baseUrl)
-            }
-            setMarkdownFiles(files)
-            if (files.isNotEmpty()) {
-                setSelectedFile(files.first())
-            }
-        } catch (e: Exception) {
-            val errorMsg = "$errorGettingFiles: ${e.message ?: ""}"
-            setErrorMessage(errorMsg)
-        } finally {
-            setIsLoading(false)
-        }
-    }
+    val fontSize = 24.sp
     
-    LaunchedEffect(selectedFile) {
-        if (selectedFile != null) {
-            setIsLoading(true)
-            setErrorMessage(null)
-            try {
-                val content = withContext(Dispatchers.IO) {
-                    ApiClient.fetchMarkdownContent(baseUrl, selectedFile)
-                }
-                setMarkdownContent(content)
-            } catch (e: Exception) {
-                val errorMsg = "$errorGettingContent: ${e.message ?: ""}"
-                setErrorMessage(errorMsg)
-            } finally {
-                setIsLoading(false)
-            }
-        }
-    }
-
-    DisposableEffect(Unit) {
-        onDispose {
-            setMarkdownContent(null)
-        }
-    }
-
-    Box(modifier = Modifier.fillMaxSize()) {
-        Watermark()
-
-        if (isSmallScreen) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(top = paddingValues.calculateTopPadding())
-            ) {
-                Spacer(modifier = Modifier.height(8.dp))
-                
-                if (markdownFiles.isNotEmpty() && selectedFile != null) {
-                    val selectedIndex = markdownFiles.indexOf(selectedFile)
-                    val (year, month, activity) = parseFilename(selectedFile)
-                    val displayText = if (year.isNotEmpty() && month.isNotEmpty()) {
-                        val monthName = getMonthName(month)
-                        "${stringResource(id = R.string.date_format, year, monthName)} ${if (activity.isNotEmpty()) "$activityString$activity" else ""}"
-                    } else {
-                        selectedFile
-                    }
-                    
-                    val showPopup = remember { mutableStateOf(false) }
-                    
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Transparent)
+    ) {
+        LazyVerticalGrid(
+            columns = GridCells.Fixed(cols),
+            modifier = Modifier.fillMaxSize(),
+            content = {
+                items(rows * cols) {
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 8.dp)
+                            .height(150.dp)
+                            .padding(16.dp)
+                            .wrapContentSize(Alignment.Center)
                     ) {
-                        Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            pressFeedbackType = PressFeedbackType.Sink,
-                            showIndication = true,
-                            onClick = { showPopup.value = true }
-                        ) {
-                            Text(
-                                text = displayText,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(12.dp),
-                                style = MiuixTheme.textStyles.body2,
-                                textAlign = TextAlign.Center
-                            )
-                        }
-                        
-                        WindowListPopup(
-                            show = showPopup.value,
-                            alignment = top.yukonga.miuix.kmp.basic.PopupPositionProvider.Align.BottomStart,
-                            onDismissRequest = { showPopup.value = false }
-                        ) {
-                            ListPopupColumn {
-                                markdownFiles.forEachIndexed { index, file ->
-                                    val (itemYear, itemMonth, itemActivity) = parseFilename(file)
-                                    val itemDisplayText = if (itemYear.isNotEmpty() && itemMonth.isNotEmpty()) {
-                                        val itemMonthName = getMonthName(itemMonth)
-                                        "${stringResource(id = R.string.date_format, itemYear, itemMonthName)} ${if (itemActivity.isNotEmpty()) "$activityString$itemActivity" else ""}"
-                                    } else {
-                                        file
-                                    }
-                                    
-                                    top.yukonga.miuix.kmp.basic.DropdownImpl(
-                                        text = itemDisplayText,
-                                        optionSize = markdownFiles.size,
-                                        isSelected = selectedIndex == index,
-                                        onSelectedIndexChange = {
-                                            setSelectedFile(markdownFiles[index])
-                                            showPopup.value = false
-                                        },
-                                        index = index
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-                
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxSize()
-                ) {
-                    ContentArea(
-                    content = markdownContent,
-                    isLoading = isLoading,
-                    errorMessage = errorMessage,
-                    paddingValues = PaddingValues(start = 16.dp, end = 16.dp)
-                )
-                }
-            }
-        } else {
-            Row(modifier = Modifier.fillMaxSize()) {
-                Sidebar(
-                    files = markdownFiles,
-                    onFileSelected = { file -> setSelectedFile(file) },
-                    paddingValues = paddingValues
-                )
-
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                ) {
-                    Column {
-                        Spacer(modifier = Modifier.height(8.dp))
-                        
-                        ContentArea(
-                            content = markdownContent,
-                            isLoading = isLoading,
-                            errorMessage = errorMessage,
-                            paddingValues = paddingValues
+                        Text(
+                            text = watermarkText,
+                            fontSize = fontSize,
+                            color = MiuixTheme.colorScheme.onBackground.copy(alpha = 0.25f),
+                            textAlign = TextAlign.Center,
+                            letterSpacing = 0.15.em,
+                            maxLines = 1,
+                            overflow = TextOverflow.Visible,
+                            modifier = Modifier
+                                .rotate(-30f)
                         )
                     }
                 }
             }
-        }
+        )
     }
 }
 
@@ -387,85 +281,219 @@ fun ContentArea(
     }
 }
 
-fun parseFilename(filename: String): Triple<String, String, String> {
-    val match = Regex("^(\\d{2})(\\d{2})(\\d{2})\\.md$").matchEntire(filename)
-    if (match != null) {
-        val year = "20${match.groupValues[1]}"
-        val month = match.groupValues[2]
-        val activity = match.groupValues[3]
-        return Triple(year, month, activity)
-    }
-    return Triple("", "", "")
-}
-
 @Composable
-fun getMonthName(month: String): String {
-    val monthNames = listOf(
-        stringResource(id = R.string.month_1),
-        stringResource(id = R.string.month_2),
-        stringResource(id = R.string.month_3),
-        stringResource(id = R.string.month_4),
-        stringResource(id = R.string.month_5),
-        stringResource(id = R.string.month_6),
-        stringResource(id = R.string.month_7),
-        stringResource(id = R.string.month_8),
-        stringResource(id = R.string.month_9),
-        stringResource(id = R.string.month_10),
-        stringResource(id = R.string.month_11),
-        stringResource(id = R.string.month_12)
-    )
-    
-    return try {
-        val monthIndex = month.toInt() - 1
-        if (monthIndex in 0..11) {
-            monthNames[monthIndex]
-        } else {
-            month
+fun AnswersScreen() {
+    val scrollBehavior = MiuixScrollBehavior()
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = stringResource(id = R.string.tab_answers),
+                largeTitle = stringResource(id = R.string.tab_answers),
+                scrollBehavior = scrollBehavior
+            )
         }
-    } catch (_: Exception) {
-        month
+    ) { paddingValues ->
+        MainContent(paddingValues = paddingValues)
     }
 }
 
+@SuppressLint("ConfigurationScreenWidthHeight")
 @Composable
-fun Watermark() {
-    val watermarkText = stringResource(id = R.string.watermark_text)
-    val rows = 4
-    val cols = 1
-    
-    val fontSize = 24.sp
-    
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color.Transparent)
+fun MainContent(paddingValues: PaddingValues) {
+    val baseUrl = "http://192.168.10.9:3002"
+    val (markdownFiles, setMarkdownFiles) = remember { mutableStateOf<List<String>>(emptyList()) }
+    val (selectedFile, setSelectedFile) = remember { mutableStateOf<String?>(null) }
+    val (markdownContent, setMarkdownContent) = remember { mutableStateOf<String?>(null) }
+    val (isLoading, setIsLoading) = remember { mutableStateOf(false) }
+    val (errorMessage, setErrorMessage) = remember { mutableStateOf<String?>(null) }
+
+    val configuration = LocalConfiguration.current
+    val screenWidth = configuration.screenWidthDp.dp
+    val isSmallScreen = screenWidth < 600.dp
+
+    val errorGettingFiles = stringResource(id = R.string.error_getting_files)
+    val errorGettingContent = stringResource(id = R.string.error_getting_content)
+    val activityString = stringResource(id = R.string.activity)
+
+    var refreshTrigger by remember { mutableStateOf(0) }
+
+    val refreshData = suspend {
+        setIsLoading(true)
+        setErrorMessage(null)
+        try {
+            val files = withContext(Dispatchers.IO) {
+                ApiClient.fetchMarkdownFiles(baseUrl)
+            }
+            setMarkdownFiles(files)
+            if (files.isNotEmpty()) {
+                setSelectedFile(files.first())
+            }
+        } catch (e: Exception) {
+            val errorMsg = "$errorGettingFiles: ${e.message ?: ""}"
+            setErrorMessage(errorMsg)
+        } finally {
+            setIsLoading(false)
+        }
+    }
+
+    LaunchedEffect(Unit, refreshTrigger) {
+        refreshData()
+    }
+
+    LaunchedEffect(selectedFile) {
+        if (selectedFile != null) {
+            setIsLoading(true)
+            setErrorMessage(null)
+            try {
+                val content = withContext(Dispatchers.IO) {
+                    ApiClient.fetchMarkdownContent(baseUrl, selectedFile)
+                }
+                setMarkdownContent(content)
+            } catch (e: Exception) {
+                val errorMsg = "$errorGettingContent: ${e.message ?: ""}"
+                setErrorMessage(errorMsg)
+            } finally {
+                setIsLoading(false)
+            }
+        }
+    }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            setMarkdownContent(null)
+        }
+    }
+
+    PullToRefresh(
+        isRefreshing = isLoading,
+        onRefresh = { refreshTrigger++ }
     ) {
-        LazyVerticalGrid(
-            columns = GridCells.Fixed(cols),
-            modifier = Modifier.fillMaxSize(),
-            content = {
-                items(rows * cols) {
+        Box(modifier = Modifier.fillMaxSize()) {
+            Watermark()
+
+            if (isSmallScreen) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(top = paddingValues.calculateTopPadding())
+                ) {
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    if (markdownFiles.isNotEmpty() && selectedFile != null) {
+                        val selectedIndex = markdownFiles.indexOf(selectedFile)
+                        val (year, month, activity) = parseFilename(selectedFile)
+                        val displayText = if (year.isNotEmpty() && month.isNotEmpty()) {
+                            val monthName = getMonthName(month)
+                            "${
+                                stringResource(
+                                    id = R.string.date_format,
+                                    year,
+                                    monthName
+                                )
+                            } ${if (activity.isNotEmpty()) "$activityString$activity" else ""}"
+                        } else {
+                            selectedFile
+                        }
+
+                        val showPopup = remember { mutableStateOf(false) }
+
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 8.dp)
+                        ) {
+                            Card(
+                                modifier = Modifier.fillMaxWidth(),
+                                pressFeedbackType = PressFeedbackType.Sink,
+                                showIndication = true,
+                                onClick = { showPopup.value = true }
+                            ) {
+                                Text(
+                                    text = displayText,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(12.dp),
+                                    style = MiuixTheme.textStyles.body2,
+                                    textAlign = TextAlign.Center
+                                )
+                            }
+
+                            WindowListPopup(
+                                show = showPopup.value,
+                                alignment = top.yukonga.miuix.kmp.basic.PopupPositionProvider.Align.BottomStart,
+                                onDismissRequest = { showPopup.value = false }
+                            ) {
+                                ListPopupColumn {
+                                    markdownFiles.forEachIndexed { index, file ->
+                                        val (itemYear, itemMonth, itemActivity) = parseFilename(file)
+                                        val itemDisplayText =
+                                            if (itemYear.isNotEmpty() && itemMonth.isNotEmpty()) {
+                                                val itemMonthName = getMonthName(itemMonth)
+                                                "${
+                                                    stringResource(
+                                                        id = R.string.date_format,
+                                                        itemYear,
+                                                        itemMonthName
+                                                    )
+                                                } ${if (itemActivity.isNotEmpty()) "$activityString$itemActivity" else ""}"
+                                            } else {
+                                                file
+                                            }
+
+                                        top.yukonga.miuix.kmp.basic.DropdownImpl(
+                                            text = itemDisplayText,
+                                            optionSize = markdownFiles.size,
+                                            isSelected = selectedIndex == index,
+                                            onSelectedIndexChange = {
+                                                setSelectedFile(markdownFiles[index])
+                                                showPopup.value = false
+                                            },
+                                            index = index
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+
                     Box(
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .height(150.dp)
-                            .padding(16.dp)
-                            .wrapContentSize(Alignment.Center)
+                            .weight(1f)
+                            .fillMaxSize()
                     ) {
-                        Text(
-                            text = watermarkText,
-                            fontSize = fontSize,
-                            color = MiuixTheme.colorScheme.onBackground.copy(alpha = 0.25f),
-                            textAlign = TextAlign.Center,
-                            letterSpacing = 0.15.em,
-                            maxLines = 1,
-                            overflow = TextOverflow.Visible,
-                            modifier = Modifier
-                                .rotate(-30f)
+                        ContentArea(
+                            content = markdownContent,
+                            isLoading = isLoading,
+                            errorMessage = errorMessage,
+                            paddingValues = PaddingValues(start = 16.dp, end = 16.dp)
                         )
                     }
                 }
+            } else {
+                Row(modifier = Modifier.fillMaxSize()) {
+                    Sidebar(
+                        files = markdownFiles,
+                        onFileSelected = { file -> setSelectedFile(file) },
+                        paddingValues = paddingValues
+                    )
+
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                    ) {
+                        Column {
+                            Spacer(modifier = Modifier.height(8.dp))
+
+                            ContentArea(
+                                content = markdownContent,
+                                isLoading = isLoading,
+                                errorMessage = errorMessage,
+                                paddingValues = paddingValues
+                            )
+                        }
+                    }
+                }
             }
-        )
+        }
     }
 }

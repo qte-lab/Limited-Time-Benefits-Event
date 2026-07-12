@@ -33,6 +33,7 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.basic.TopAppBar
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.Scaffold
+import top.yukonga.miuix.kmp.basic.PullToRefresh
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -107,8 +108,9 @@ fun MainContent() {
     var errorMessage by remember { mutableStateOf<String?>(null) }
     
     val scrollBehavior = MiuixScrollBehavior()
-    
-    LaunchedEffect(Unit) {
+    var refreshTrigger by remember { mutableStateOf(0) }
+
+    val refreshData = suspend {
         isLoading = true
         try {
             val result = withContext(Dispatchers.IO) {
@@ -122,6 +124,10 @@ fun MainContent() {
             isLoading = false
         }
     }
+    
+    LaunchedEffect(Unit, refreshTrigger) {
+        refreshData()
+    }
 
     Scaffold(
         topBar = {
@@ -131,57 +137,42 @@ fun MainContent() {
                 scrollBehavior = scrollBehavior
             )
         }
-    ) {
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .nestedScroll(scrollBehavior.nestedScrollConnection),
-            contentPadding = PaddingValues(
-                top = it.calculateTopPadding(),
-                start = 16.dp,
-                end = 16.dp,
-                bottom = 16.dp
-            )
+    ) { paddingValues ->
+        PullToRefresh(
+            isRefreshing = isLoading,
+            onRefresh = { refreshTrigger++ }
         ) {
-            item {
-                // Add a small space below largeTitle
-                Spacer(modifier = Modifier.height(8.dp))
-                
-                if (isLoading) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(200.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            CircularProgressIndicator()
-                            Spacer(modifier = Modifier.height(16.dp))
-                            Text(
-                                text = stringResource(id = R.string.loading_text),
-                                style = MiuixTheme.textStyles.body2
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .nestedScroll(scrollBehavior.nestedScrollConnection),
+                contentPadding = PaddingValues(
+                    top = paddingValues.calculateTopPadding(),
+                    start = 16.dp,
+                    end = 16.dp,
+                    bottom = 16.dp
+                )
+            ) {
+                item {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    
+                    if (errorMessage != null) {
+                        Text(
+                            text = errorMessage ?: "",
+                            style = MiuixTheme.textStyles.body2,
+                            color = MiuixTheme.colorScheme.error
+                        )
+                    } else {
+                        activities.forEach { activity ->
+                            ActivityCard(
+                                activity = activity,
+                                onClick = { uriHandler.openUri(activity.url) }
                             )
                         }
                     }
-                } else if (errorMessage != null) {
-                    Text(
-                        text = errorMessage ?: "",
-                        style = MiuixTheme.textStyles.body2,
-                        color = MiuixTheme.colorScheme.error
-                    )
-                } else {
-                    activities.forEach { activity ->
-                        ActivityCard(
-                            activity = activity,
-                            onClick = { uriHandler.openUri(activity.url) }
-                        )
-                    }
-                }
 
-                Spacer(modifier = Modifier.height(16.dp))
-                
+                    Spacer(modifier = Modifier.height(16.dp))
+                }
             }
         }
     }

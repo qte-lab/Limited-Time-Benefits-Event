@@ -8,7 +8,6 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
 import com.chronie.gift.data.LanguageManager
-import com.chronie.gift.data.ThemeManager
 import com.chronie.gift.ui.GiftApp
 import com.chronie.gift.ui.theme.GiftTheme
 
