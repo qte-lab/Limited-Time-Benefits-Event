@@ -5,33 +5,39 @@ import android.content.res.Configuration
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalView
+import androidx.core.view.WindowCompat
+import top.yukonga.miuix.kmp.theme.ColorSchemeMode
 import top.yukonga.miuix.kmp.theme.MiuixTheme
+import top.yukonga.miuix.kmp.theme.ThemeController
 import java.util.Locale
 
 val LocalLocale = staticCompositionLocalOf<Locale> { Locale.ENGLISH }
 
 @Composable
 fun GiftTheme(
-    themeMode: String = "auto", // add themeMode parameter, support "light", "dark", "auto"
+    themeMode: String = "auto",
     content: @Composable () -> Unit
 ) {
-    // let Compose decide whether to use dark theme based on themeMode
-    val darkTheme = when (themeMode) {
-        "dark" -> true
-        "light" -> false
-        "auto" -> isSystemInDarkTheme()
-        else -> isSystemInDarkTheme()
+    val colorSchemeMode = when (themeMode) {
+        "dark" -> ColorSchemeMode.Dark
+        "light" -> ColorSchemeMode.Light
+        else -> ColorSchemeMode.System
     }
     
-    val colors = if (darkTheme) {
-        top.yukonga.miuix.kmp.theme.darkColorScheme()
-    } else {
-        top.yukonga.miuix.kmp.theme.lightColorScheme()
+    val darkTheme = when (colorSchemeMode) {
+        ColorSchemeMode.Dark -> true
+        ColorSchemeMode.Light -> false
+        else -> isSystemInDarkTheme()
     }
 
-    MiuixTheme(colors = colors) {
+    UpdateSystemUi(darkTheme)
+
+    val controller = ThemeController(colorSchemeMode)
+    MiuixTheme(controller = controller) {
         content()
     }
 }
@@ -41,9 +47,15 @@ fun GiftTheme(
     controller: ThemeController,
     content: @Composable () -> Unit
 ) {
-    val colors = controller.currentColors()
+    val darkTheme = when (controller.colorSchemeMode) {
+        ColorSchemeMode.Dark -> true
+        ColorSchemeMode.Light -> false
+        else -> isSystemInDarkTheme()
+    }
     
-    MiuixTheme(colors = colors) {
+    UpdateSystemUi(darkTheme)
+    
+    MiuixTheme(controller = controller) {
         content()
     }
 }
@@ -55,8 +67,14 @@ fun GiftTheme(
     languageController: LanguageController,
     content: @Composable () -> Unit
 ) {
-    val colors = controller.currentColors()
     val locale = languageController.currentLocale
+    val darkTheme = when (controller.colorSchemeMode) {
+        ColorSchemeMode.Dark -> true
+        ColorSchemeMode.Light -> false
+        else -> isSystemInDarkTheme()
+    }
+    
+    UpdateSystemUi(darkTheme)
     
     val context = LocalContext.current
     val configuration = Configuration(context.resources.configuration)
@@ -67,8 +85,20 @@ fun GiftTheme(
         LocalContext provides newContext,
         LocalLocale provides locale
     ) {
-        MiuixTheme(colors = colors) {
+        MiuixTheme(controller = controller) {
             content()
+        }
+    }
+}
+
+@Composable
+private fun UpdateSystemUi(darkTheme: Boolean) {
+    val view = LocalView.current
+    LaunchedEffect(darkTheme) {
+        val context = view.context
+        if (context is android.app.Activity) {
+            val windowInsetsController = WindowCompat.getInsetsController(context.window, view)
+            windowInsetsController.isAppearanceLightStatusBars = !darkTheme
         }
     }
 }

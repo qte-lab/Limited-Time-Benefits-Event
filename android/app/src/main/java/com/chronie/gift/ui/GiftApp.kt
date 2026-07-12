@@ -46,9 +46,9 @@ import com.chronie.gift.ui.screens.HomeScreen
 import com.chronie.gift.R
 import com.chronie.gift.ui.screens.LicensesScreen
 import com.chronie.gift.ui.screens.SettingsScreen
-import com.chronie.gift.ui.theme.ColorSchemeMode
+import top.yukonga.miuix.kmp.theme.ColorSchemeMode
+import top.yukonga.miuix.kmp.theme.ThemeController
 import com.chronie.gift.ui.theme.GiftTheme
-import com.chronie.gift.ui.theme.ThemeController
 import com.chronie.gift.ui.theme.LanguageController
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import kotlinx.coroutines.Dispatchers
@@ -81,8 +81,8 @@ fun GiftApp() {
         else -> ColorSchemeMode.System
     }
     
-    val controller = remember {
-        ThemeController(initialThemeMode)
+    var currentThemeMode by remember {
+        mutableStateOf(initialThemeMode)
     }
     
     // Language management
@@ -100,7 +100,7 @@ fun GiftApp() {
             "dark" -> ColorSchemeMode.Dark
             else -> ColorSchemeMode.System
         }
-        controller.colorSchemeMode = colorSchemeMode
+        currentThemeMode = colorSchemeMode
         themeManager.saveTheme(newThemeMode)
     }
     
@@ -193,7 +193,10 @@ fun GiftApp() {
     }
     
     // Move GiftTheme call here to ensure theme changes are applied immediately
-    GiftTheme(controller = controller, languageController = languageController) {
+    val themeController = remember(currentThemeMode) {
+        ThemeController(currentThemeMode)
+    }
+    GiftTheme(controller = themeController, languageController = languageController) {
         val backdrop = rememberLayerBackdrop()
         Box(modifier = Modifier.fillMaxSize()) {
             Scaffold(
