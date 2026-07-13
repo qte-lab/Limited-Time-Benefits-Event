@@ -1,0 +1,374 @@
+name: CLOC Code Statistics
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write
+  actions: read
+
+jobs:
+  cloc:
+    name: Count Lines of Code
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.14'
+
+      - name: Install cloc
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cloc
+      - name: Run cloc and generate reports
+        run: |
+          # 打印当前目录和环境信息
+          echo "当前目录: $(pwd)"
+          echo "环境信息: $(uname -a)"
+          
+          # 分别执行cloc命令生成每种格式的报告，避免参数冲突
+          echo "生成CSV报告..."
+          cloc --csv --out=./cloc-report.csv --exclude-dir=.git,node_modules,__pycache__,.pytest_cache,dist,build .
+          
+          echo "生成JSON报告..."
+          cloc --json --out=./cloc-report.json --exclude-dir=.git,node_modules,__pycache__,.pytest_cache,dist,build .
+          
+          echo "生成Markdown报告..."
+          cloc --md --out=./cloc-report.md --exclude-dir=.git,node_modules,__pycache__,.pytest_cache,dist,build .
+          
+          # 验证文件生成
+          echo "生成的文件列表:"
+          ls -la ./cloc-*
+      - name: Upload cloc reports as artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: cloc-reports
+          path: |
+            ./cloc-report.csv
+            ./cloc-report.json
+            ./cloc-report.md
+      - name: Generate summary table for PR comment
+        if: github.event_name == 'pull_request'
+        id: summary
+        run: |
+          # 打印调试信息
+          echo "===== PR评论生成调试信息 ===="
+          echo "当前目录: $(pwd)"
+          echo "文件列表:"
+          ls -la ./cloc-* 2>/dev/null || echo "未找到cloc报告文件"
+          
+          python3 <<'EOF'
+          import os
+          import sys
+          import re
+          print("开始生成PR评论摘要...")
+          # 首先检查CSV文件，这是最可靠的数据源
+          csv_file = './cloc-report.csv'
+          table_content = ""
+          
+          if os.path.exists(csv_file):
+              print(f"从{csv_file}读取数据生成表格")
+              try:
+                  # 使用简化的CSV读取方式
+                  with open(csv_file, 'r', encoding='utf-8') as f:
+                      lines = f.readlines()
+                      
+                  if len(lines) > 1:
+                      # 提取标题行和数据行
+                      headers = lines[0].strip().split(',')
+                      data_lines = lines[1:]
+                      
+                      # 确保有正确的列
+                      if len(headers) >= 6:
+                          # 创建表格头部（中文）
+                          table_content = "| 语言 | 文件数 | 空行数 | 注释行数 | 代码行数 | 占比 |\n"
+                          table_content += "|------|--------|--------|----------|----------|------|\n"
+                          
+                          # 解析数据并计算总计
+                          rows = []
+                          total_code = 0
+                          
+                          for line in data_lines:
+                              try:
+                                  # 简单的CSV解析
+                                  parts = re.split(r',(?=(?:[^"]*"[^"]*")*[^"]*$)', line.strip())
+                                  if len(parts) >= 5:
+                                      # 根据实际CSV格式：files, language, blank, comment, code
+                                      files = int(parts[0]) if parts[0].isdigit() else 0
+                                      lang = parts[1].strip('"') if parts[1].startswith('"') else parts[1]
+                                      # 跳过SUM行
+                                      if lang == 'SUM':
+                                          continue
+                                      blank = int(parts[2]) if parts[2].isdigit() else 0
+                                      comment = int(parts[3]) if parts[3].isdigit() else 0
+                                      code = int(parts[4]) if parts[4].isdigit() else 0
+                                      rows.append((lang, files, blank, comment, code))
+                                      total_code += code
+                              except Exception as e:
+                                  print(f"解析行时出错: {line}, 错误: {e}")
+                          
+                          # 按代码行数排序
+                          rows.sort(key=lambda x: x[4], reverse=True)
+                          
+                          # 格式化数字
+                          def format_num(n):
+                              return f"{n:,}"
+                          
+                          # 生成表格行
+                          for row in rows:
+                              lang, files, blank, comment, code = row
+                              percent = (code / total_code * 100) if total_code > 0 else 0
+                              table_content += f"| {lang} | {format_num(files)} | {format_num(blank)} | {format_num(comment)} | {format_num(code)} | {percent:.1f}% |\n"
+                          
+                          # 计算总计
+                          total_files = sum(row[1] for row in rows)
+                          total_blank = sum(row[2] for row in rows)
+                          total_comment = sum(row[3] for row in rows)
+                          
+                          # 添加总计行
+                          table_content += "| **总计** | **" + format_num(total_files) + "** | **" + format_num(total_blank) + "** | **" + format_num(total_comment) + "** | **" + format_num(total_code) + "** | **100.0%** |\n"
+              except Exception as e:
+                  print(f"读取CSV文件时出错: {e}")
+          
+          # 如果CSV文件读取失败或没有生成表格，尝试从Markdown文件获取
+          md_file = './cloc-report.md'
+          if not table_content and os.path.exists(md_file):
+              print(f"从{md_file}读取数据生成表格")
+              try:
+                  with open(md_file, 'r', encoding='utf-8') as f:
+                      md_content = f.read()
+                  
+                  # 直接查找表格部分
+                  if "| Language |" in md_content:
+                      lines = md_content.split('\n')
+                      table_start = False
+                      table_lines = []
+                      
+                      for line in lines:
+                          if "| Language |" in line:
+                              table_start = True
+                              # 添加中文表头
+                              table_lines.append("| 语言 | 文件数 | 空行数 | 注释行数 | 代码行数 |\n")
+                              table_lines.append("|------|--------|--------|----------|----------|\n")
+                          elif table_start and "|" in line:
+                              # 跳过分隔行
+                              if "---" in line:
+                                  continue
+                              # 添加数据行
+                              table_lines.append(line + "\n")
+                          elif table_start and not line.strip():
+                              break
+                      
+                      if len(table_lines) > 2:
+                          table_content = ''.join(table_lines)
+              except Exception as e:
+                  print(f"读取Markdown文件时出错: {e}")
+          
+          # 如果还没有表格内容，使用备用表格
+          if not table_content:
+              print("使用备用表格模板")
+              table_content = "| 语言 | 文件数 | 空行数 | 注释行数 | 代码行数 |\n"
+              table_content += "|------|--------|--------|----------|----------|\n"
+              table_content += "| 报告生成中 | - | - | - | - |\n"
+              table_content += "| 详情请查看构建产物中的完整报告 | - | - | - | - |\n"
+          
+          # 写入表格内容到环境变量
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+              f.write(f"table<<EOF\n{table_content}\nEOF\n")
+          
+          print("PR评论表格生成完成")
+          # 打印表格内容以便调试
+          print("\n表格内容预览:")
+          print(table_content[:500] + "..." if len(table_content) > 500 else table_content)
+          EOF
+      - name: Comment PR with cloc summary
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v9
+        with:
+          script: |
+            const table = `${{ steps.summary.outputs.table }}`;
+            const body = `## 📊 Lines of Code Report (cloc)\n\n${table}\n\n<details><summary>Full reports</summary>\n\nDownload artifacts from the [workflow run](../actions/runs/${{ github.run_id }}).\n\n</details>`;
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body
+            });
+      - name: Generate job summary
+        run: |
+          # 打印调试信息
+          echo "===== 任务摘要生成调试信息 ===="
+          echo "当前目录: $(pwd)"
+          echo "文件列表:"
+          ls -la ./cloc-* 2>/dev/null || echo "未找到cloc报告文件"
+          
+          python3 <<'EOF'
+          import os
+          import re
+          
+          print("开始生成GitHub Job Summary...")
+          
+          # 创建摘要文件路径
+          summary_path = os.environ.get('GITHUB_STEP_SUMMARY', '')
+          if not summary_path:
+              print("警告: GITHUB_STEP_SUMMARY 环境变量未设置")
+              # 创建一个临时文件作为替代
+              summary_path = './job-summary.md'
+          
+          # 生成摘要内容
+          summary_content = "# 代码统计报告\n\n"
+          
+          # 首先检查CSV文件，这是最可靠的数据源
+          csv_file = './cloc-report.csv'
+          table_content = ""
+          
+          if os.path.exists(csv_file):
+              print(f"从{csv_file}读取数据生成表格")
+              try:
+                  # 使用简化的CSV读取方式
+                  with open(csv_file, 'r', encoding='utf-8') as f:
+                      lines = f.readlines()
+                      
+                  if len(lines) > 1:
+                      # 提取标题行和数据行
+                      headers = lines[0].strip().split(',')
+                      data_lines = lines[1:]
+                      
+                      # 确保有正确的列
+                      if len(headers) >= 6:
+                          # 创建表格头部（中文）
+                          table_content = "## 代码统计摘要\n\n"
+                          table_content += "| 语言 | 文件数 | 空行数 | 注释行数 | 代码行数 | 占比 |\n"
+                          table_content += "|------|--------|--------|----------|----------|------|\n"
+                          
+                          # 解析数据并计算总计
+                          rows = []
+                          total_code = 0
+                          
+                          for line in data_lines:
+                              try:
+                                  # 简单的CSV解析
+                                  parts = re.split(r',(?=(?:[^"]*"[^"]*")*[^"]*$)', line.strip())
+                                  if len(parts) >= 5:
+                                      # 根据实际CSV格式：files, language, blank, comment, code
+                                      files = int(parts[0]) if parts[0].isdigit() else 0
+                                      lang = parts[1].strip('"') if parts[1].startswith('"') else parts[1]
+                                      # 跳过SUM行
+                                      if lang == 'SUM':
+                                          continue
+                                      blank = int(parts[2]) if parts[2].isdigit() else 0
+                                      comment = int(parts[3]) if parts[3].isdigit() else 0
+                                      code = int(parts[4]) if parts[4].isdigit() else 0
+                                      rows.append((lang, files, blank, comment, code))
+                                      total_code += code
+                              except Exception as e:
+                                  print(f"解析行时出错: {line}, 错误: {e}")
+                          
+                          # 按代码行数排序
+                          rows.sort(key=lambda x: x[4], reverse=True)
+                          
+                          # 格式化数字
+                          def format_num(n):
+                              return f"{n:,}"
+                          
+                          # 生成表格行
+                          for row in rows:
+                              lang, files, blank, comment, code = row
+                              percent = (code / total_code * 100) if total_code > 0 else 0
+                              table_content += f"| {lang} | {format_num(files)} | {format_num(blank)} | {format_num(comment)} | {format_num(code)} | {percent:.1f}% |\n"
+                          
+                          # 计算总计
+                          total_files = sum(row[1] for row in rows)
+                          total_blank = sum(row[2] for row in rows)
+                          total_comment = sum(row[3] for row in rows)
+                          
+                          # 添加总计行
+                          table_content += "| **总计** | **" + format_num(total_files) + "** | **" + format_num(total_blank) + "** | **" + format_num(total_comment) + "** | **" + format_num(total_code) + "** | **100.0%** |\n"
+              except Exception as e:
+                  print(f"读取CSV文件时出错: {e}")
+          
+          # 如果CSV文件读取失败或没有生成表格，尝试从Markdown文件获取
+          md_file = './cloc-report.md'
+          if not table_content and os.path.exists(md_file):
+              print(f"从{md_file}读取数据生成表格")
+              try:
+                  with open(md_file, 'r', encoding='utf-8') as f:
+                      md_content = f.read()
+                  
+                  # 直接查找表格部分并复制
+                  if "| Language |" in md_content:
+                      lines = md_content.split('\n')
+                      table_start = False
+                      table_lines = []
+                      
+                      # 添加中文表头
+                      table_lines.append("## 代码统计摘要\n\n")
+                      table_lines.append("| 语言 | 文件数 | 空行数 | 注释行数 | 代码行数 |\n")
+                      table_lines.append("|------|--------|--------|----------|----------|\n")
+                      
+                      for line in lines:
+                          if "| Language |" in line:
+                              table_start = True
+                          elif table_start and "|" in line:
+                              # 跳过分隔行
+                              if "---" in line:
+                                  continue
+                              # 添加数据行
+                              table_lines.append(line + "\n")
+                          elif table_start and not line.strip():
+                              break
+                      
+                      if len(table_lines) > 3:  # 确保有表头和至少一行数据
+                          table_content = ''.join(table_lines)
+              except Exception as e:
+                  print(f"读取Markdown文件时出错: {e}")
+          
+          # 如果还没有表格内容，使用备用表格
+          if not table_content:
+              print("使用备用表格模板")
+              table_content = "## 代码统计摘要\n\n"
+              table_content += "| 语言 | 文件数 | 空行数 | 注释行数 | 代码行数 |\n"
+              table_content += "|------|--------|--------|----------|----------|\n"
+              table_content += "| 报告生成中 | - | - | - | - |\n"
+              table_content += "| 详情请查看构建产物中的完整报告 | - | - | - | - |\n"
+          
+          # 添加项目统计信息
+          project_info = "## 项目统计信息\n\n"
+          project_info += "- **代码仓库**: " + os.environ.get('GITHUB_REPOSITORY', '未知') + "\n"
+          project_info += "- **分支**: " + os.environ.get('GITHUB_REF_NAME', '未知') + "\n"
+          project_info += "- **提交**: " + os.environ.get('GITHUB_SHA', '未知')[:7] + "\n\n"
+          
+          # 添加完整报告引用
+          complete_report = "## 完整报告\n\n"
+          complete_report += "完整的代码统计报告可在构建产物中下载。产物包含以下文件：\n"
+          complete_report += "- cloc-report.md (Markdown格式)\n"
+          complete_report += "- cloc-report.csv (CSV格式)\n"
+          complete_report += "- cloc-report.json (JSON格式)\n\n"
+          
+          # 组合所有内容
+          summary_content += table_content + "\n\n" + project_info + complete_report
+          
+          # 写入摘要文件
+          try:
+              with open(summary_path, 'w', encoding='utf-8') as f:
+                  f.write(summary_content)
+              print(f"成功写入摘要到 {summary_path}")
+          except Exception as e:
+              print(f"写入摘要文件失败: {e}")
+              # 作为备用，打印到控制台
+              print("\n摘要内容:")
+              print(summary_content)
+          
+          # 打印摘要内容以便调试
+          print("\n摘要内容预览:")
+          print(summary_content[:1000] + "..." if len(summary_content) > 1000 else summary_content)
+          EOF
