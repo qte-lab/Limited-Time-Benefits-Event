@@ -1,20 +1,25 @@
 package com.chronie.gift.ui.components
 
-import androidx.compose.foundation.layout.Box
+import android.content.ActivityNotFoundException
+import android.widget.Toast
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -23,20 +28,16 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONObject
+import top.yukonga.miuix.kmp.basic.Card
+import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
+import top.yukonga.miuix.kmp.basic.PullToRefresh
+import top.yukonga.miuix.kmp.basic.Scaffold
+import top.yukonga.miuix.kmp.basic.Text
+import top.yukonga.miuix.kmp.basic.TopAppBar
+import top.yukonga.miuix.kmp.theme.MiuixTheme
+import top.yukonga.miuix.kmp.utils.PressFeedbackType
 import java.net.HttpURLConnection
 import java.net.URL
-import top.yukonga.miuix.kmp.basic.Card
-import top.yukonga.miuix.kmp.basic.Text
-import top.yukonga.miuix.kmp.basic.CircularProgressIndicator
-import top.yukonga.miuix.kmp.utils.PressFeedbackType
-import top.yukonga.miuix.kmp.theme.MiuixTheme
-import top.yukonga.miuix.kmp.basic.TopAppBar
-import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
-import top.yukonga.miuix.kmp.basic.Scaffold
-import top.yukonga.miuix.kmp.basic.PullToRefresh
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.ui.input.nestedscroll.nestedScroll
 
 data class Activity(
     val id: String,
@@ -103,12 +104,15 @@ private fun fetchActivitiesFromNetwork(): Pair<List<Activity>, String?> {
 @Composable
 fun MainContent() {
     val uriHandler = LocalUriHandler.current
+    val context = LocalContext.current
+    val openLinkFailedMsg = stringResource(id = R.string.open_link_failed)
+    val noBrowserMsg = stringResource(id = R.string.no_browser_found)
     var activities by remember { mutableStateOf<List<Activity>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     
     val scrollBehavior = MiuixScrollBehavior()
-    var refreshTrigger by remember { mutableStateOf(0) }
+    var refreshTrigger by remember { mutableIntStateOf(0) }
 
     val refreshData = suspend {
         isLoading = true
@@ -127,6 +131,23 @@ fun MainContent() {
     
     LaunchedEffect(Unit, refreshTrigger) {
         refreshData()
+    }
+
+    // Safely launch the activity URL: guards against empty/blank URLs and catches
+    // any exceptions (malformed URL, ActivityNotFoundException when no browser is
+    // installed, etc.) so the app never crashes.
+    val openUrlSafely: (String) -> Unit = { url ->
+        if (url.isBlank()) {
+            Toast.makeText(context, openLinkFailedMsg, Toast.LENGTH_SHORT).show()
+        } else {
+            try {
+                uriHandler.openUri(url)
+            } catch (_: ActivityNotFoundException) {
+                Toast.makeText(context, noBrowserMsg, Toast.LENGTH_SHORT).show()
+            } catch (_: Exception) {
+                Toast.makeText(context, openLinkFailedMsg, Toast.LENGTH_SHORT).show()
+            }
+        }
     }
 
     Scaffold(
@@ -166,7 +187,7 @@ fun MainContent() {
                         activities.forEach { activity ->
                             ActivityCard(
                                 activity = activity,
-                                onClick = { uriHandler.openUri(activity.url) }
+                                onClick = { openUrlSafely(activity.url) }
                             )
                         }
                     }

@@ -71,7 +71,7 @@ gift/
   - In-memory caching with TTL (60 seconds)
 
 ### Android Application
-- **Language**: Kotlin 2.4.0
+- **Language**: Kotlin 2.4.10
 - **UI Framework**: Jetpack Compose
 - **Design System**: Miuix KMP 0.9.3
 - **Key Libraries**:

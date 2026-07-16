@@ -7,6 +7,7 @@ import android.os.Build
 import android.os.Environment
 import android.util.Log
 import androidx.annotation.RequiresApi
+import com.chronie.gift.data.FairMemoryReceiver
 import java.io.File
 import java.io.FileWriter
 import java.io.PrintWriter
@@ -31,6 +32,8 @@ class GiftApplication : Application() {
     override fun onCreate() {
         super.onCreate()
         initCrashHandler()
+        // Initialize fair run-time memory adaptation, listen for TRIM/KILL broadcasts
+        FairMemoryReceiver.getInstance().initialize(this)
     }
 
     @RequiresApi(Build.VERSION_CODES.BAKLAVA)
