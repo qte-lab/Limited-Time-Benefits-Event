@@ -46,7 +46,10 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 @Composable
-fun MarkdownRenderer(markdown: String) {
+fun MarkdownRenderer(
+    markdown: String,
+    modifier: Modifier = Modifier
+) {
     val context = LocalContext.current
     val uriHandler = LocalUriHandler.current
     
@@ -88,7 +91,9 @@ fun MarkdownRenderer(markdown: String) {
 
     SelectionContainer {
         LazyColumn(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+            modifier = modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
             contentPadding = PaddingValues(bottom = 80.dp)
         ) {

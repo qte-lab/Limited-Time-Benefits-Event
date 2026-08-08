@@ -2,6 +2,7 @@ package com.chronie.gift.ui.screens
 
 import android.annotation.SuppressLint
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -12,6 +13,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
@@ -91,17 +93,25 @@ fun SettingsScreen(
             )
         }
     ) { paddingValues ->
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .nestedScroll(scrollBehavior.nestedScrollConnection),
-            contentPadding = androidx.compose.foundation.layout.PaddingValues(
-                top = paddingValues.calculateTopPadding(),
-                start = 16.dp,
-                end = 16.dp,
-                bottom = 16.dp
-            )
-        ) {
+        BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+            val isWideScreen = maxWidth >= 600.dp
+
+            // On large screens the settings content is capped to 80% width and centered so it
+            // does not stretch across the whole window. The Answers screen is intentionally exempt.
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = if (isWideScreen) Alignment.TopCenter else Alignment.TopStart
+            ) {
+                LazyColumn(
+                    modifier = (if (isWideScreen) Modifier.fillMaxWidth(0.8f) else Modifier.fillMaxWidth())
+                        .nestedScroll(scrollBehavior.nestedScrollConnection),
+                    contentPadding = androidx.compose.foundation.layout.PaddingValues(
+                        top = paddingValues.calculateTopPadding(),
+                        start = 16.dp,
+                        end = 16.dp,
+                        bottom = 16.dp
+                    )
+                ) {
             item {
                 // Add a small space below largeTitle
                 Spacer(modifier = Modifier.height(8.dp))
@@ -199,7 +209,9 @@ fun SettingsScreen(
                         color = MiuixTheme.colorScheme.onSurfaceContainerVariant
                     )
                 }
+                }
             }
+        }
         }
     }
 }

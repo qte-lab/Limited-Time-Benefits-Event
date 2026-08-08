@@ -3,7 +3,7 @@ package com.chronie.gift.ui.screens
 import android.annotation.SuppressLint
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
-import androidx.compose.ui.draw.rotate
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.grid.*
@@ -28,7 +28,10 @@ import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.SmallTopAppBar
 import top.yukonga.miuix.kmp.basic.PullToRefresh
 import top.yukonga.miuix.kmp.basic.Card
+import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.Text
+import top.yukonga.miuix.kmp.icon.MiuixIcons
+import top.yukonga.miuix.kmp.icon.extended.Ok
 import top.yukonga.miuix.kmp.basic.CircularProgressIndicator
 import top.yukonga.miuix.kmp.utils.PressFeedbackType
 import top.yukonga.miuix.kmp.theme.MiuixTheme
@@ -133,15 +136,22 @@ fun getMonthName(month: String): String {
 fun Sidebar(
     files: List<String>,
     onFileSelected: (String) -> Unit,
+    selectedFile: String? = null,
     paddingValues: PaddingValues = PaddingValues(0.dp)
 ) {
     Surface(
         modifier = Modifier
             .width(250.dp)
             .fillMaxHeight()
-            .padding(top = paddingValues.calculateTopPadding())
-            .border(1.dp, MiuixTheme.colorScheme.outline, shape = androidx.compose.foundation.shape.RoundedCornerShape(8.dp)),
-        color = Color.Transparent
+            .padding(
+                top = paddingValues.calculateTopPadding(),
+                start = 12.dp,
+                end = 12.dp,
+                bottom = 12.dp
+            ),
+        shape = RoundedCornerShape(16.dp),
+        color = MiuixTheme.colorScheme.surfaceContainer,
+        shadowElevation = 2.dp
     ) {
         LazyColumn(
             modifier = Modifier.fillMaxSize().padding(8.dp)
@@ -163,11 +173,35 @@ fun Sidebar(
                     showIndication = true,
                     onClick = { onFileSelected(file) }
                 ) {
-                    Text(
-                        text = displayText,
-                        modifier = Modifier.padding(12.dp),
-                        style = MiuixTheme.textStyles.body2
-                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            text = displayText,
+                            modifier = Modifier
+                                .padding(12.dp)
+                                .weight(1f),
+                            style = MiuixTheme.textStyles.body2,
+                            color = if (file == selectedFile) {
+                                MiuixTheme.colorScheme.primary
+                            } else {
+                                MiuixTheme.colorScheme.onSurface
+                            }
+                        )
+
+                        if (file == selectedFile) {
+                            Icon(
+                                imageVector = MiuixIcons.Ok,
+                                contentDescription = "Selected",
+                                tint = MiuixTheme.colorScheme.primary,
+                                modifier = Modifier
+                                    .padding(end = 12.dp)
+                                    .size(12.dp)
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -220,8 +254,14 @@ fun ContentArea(
                 }
             }
             content != null -> {
-                Box(modifier = Modifier.fillMaxSize()) {
-                    MarkdownRenderer(markdown = content)
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.TopCenter
+                ) {
+                    MarkdownRenderer(
+                        markdown = content,
+                        modifier = Modifier.fillMaxWidth(0.9f)
+                    )
                 }
             }
             else -> {
@@ -423,6 +463,7 @@ fun MainContent(paddingValues: PaddingValues) {
                     Sidebar(
                         files = markdownFiles,
                         onFileSelected = { file -> setSelectedFile(file) },
+                        selectedFile = selectedFile,
                         paddingValues = paddingValues
                     )
 

@@ -2,6 +2,9 @@ package com.chronie.gift.ui.components
 
 import android.content.ActivityNotFoundException
 import android.widget.Toast
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
@@ -10,6 +13,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -17,6 +23,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
@@ -159,40 +166,96 @@ fun MainContent() {
             )
         }
     ) { paddingValues ->
-        PullToRefresh(
-            isRefreshing = isLoading,
-            onRefresh = { refreshTrigger++ }
-        ) {
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .nestedScroll(scrollBehavior.nestedScrollConnection),
-                contentPadding = PaddingValues(
-                    top = paddingValues.calculateTopPadding(),
-                    start = 16.dp,
-                    end = 16.dp,
-                    bottom = 16.dp
-                )
+        BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+            val isWideScreen = maxWidth >= 600.dp
+
+            PullToRefresh(
+                isRefreshing = isLoading,
+                onRefresh = { refreshTrigger++ }
             ) {
-                item {
-                    Spacer(modifier = Modifier.height(8.dp))
-                    
-                    if (errorMessage != null) {
-                        Text(
-                            text = errorMessage ?: "",
-                            style = MiuixTheme.textStyles.body2,
-                            color = MiuixTheme.colorScheme.error
-                        )
-                    } else {
-                        activities.forEach { activity ->
-                            ActivityCard(
-                                activity = activity,
-                                onClick = { openUrlSafely(activity.url) }
+                // On large screens the content is capped to 80% width and centered so it does not
+                // stretch uncomfortably across a wide window. Home cards then flow in a responsive
+                // grid (multiple per row) instead of a single tall column.
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = if (isWideScreen) Alignment.TopCenter else Alignment.TopStart
+                ) {
+                    if (isWideScreen) {
+                        LazyVerticalGrid(
+                            columns = GridCells.Adaptive(minSize = 320.dp),
+                            modifier = Modifier
+                                .fillMaxWidth(0.8f)
+                                .nestedScroll(scrollBehavior.nestedScrollConnection),
+                            horizontalArrangement = Arrangement.spacedBy(16.dp, Alignment.Start),
+                            verticalArrangement = Arrangement.spacedBy(16.dp),
+                            contentPadding = PaddingValues(
+                                top = paddingValues.calculateTopPadding(),
+                                start = 16.dp,
+                                end = 16.dp,
+                                bottom = 16.dp
                             )
+                        ) {
+                            item {
+                                Spacer(modifier = Modifier.height(8.dp))
+                            }
+                            if (errorMessage != null) {
+                                item {
+                                    Text(
+                                        text = errorMessage ?: "",
+                                        style = MiuixTheme.textStyles.body2,
+                                        color = MiuixTheme.colorScheme.error
+                                    )
+                                }
+                            } else {
+                                items(activities) { activity ->
+                                    ActivityCard(
+                                        activity = activity,
+                                        onClick = { openUrlSafely(activity.url) },
+                                        modifier = Modifier.fillMaxWidth()
+                                    )
+                                }
+                            }
+                            item {
+                                Spacer(modifier = Modifier.height(16.dp))
+                            }
+                        }
+                    } else {
+                        LazyColumn(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .nestedScroll(scrollBehavior.nestedScrollConnection),
+                            contentPadding = PaddingValues(
+                                top = paddingValues.calculateTopPadding(),
+                                start = 16.dp,
+                                end = 16.dp,
+                                bottom = 16.dp
+                            )
+                        ) {
+                            item {
+                                Spacer(modifier = Modifier.height(8.dp))
+
+                                if (errorMessage != null) {
+                                    Text(
+                                        text = errorMessage ?: "",
+                                        style = MiuixTheme.textStyles.body2,
+                                        color = MiuixTheme.colorScheme.error
+                                    )
+                                } else {
+                                    activities.forEach { activity ->
+                                        ActivityCard(
+                                            activity = activity,
+                                            onClick = { openUrlSafely(activity.url) },
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(vertical = 4.dp)
+                                        )
+                                    }
+                                }
+
+                                Spacer(modifier = Modifier.height(16.dp))
+                            }
                         }
                     }
-
-                    Spacer(modifier = Modifier.height(16.dp))
                 }
             }
         }
@@ -202,12 +265,11 @@ fun MainContent() {
 @Composable
 fun ActivityCard(
     activity: Activity,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 4.dp),
+        modifier = modifier,
         pressFeedbackType = PressFeedbackType.Sink,
         showIndication = true,
         onClick = onClick
