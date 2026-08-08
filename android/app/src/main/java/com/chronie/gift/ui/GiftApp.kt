@@ -3,11 +3,24 @@ package com.chronie.gift.ui
 import android.annotation.SuppressLint
 import android.os.Build
 import android.widget.Toast
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.SizeTransform
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.ui.unit.dp
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.icon.extended.HorizontalSplit
@@ -23,6 +36,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -32,12 +46,6 @@ import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.slideOutHorizontally
-import androidx.compose.animation.togetherWith
 import com.chronie.gift.data.LanguageManager
 import com.chronie.gift.data.ThemeManager
 import com.chronie.gift.data.TabManager
@@ -237,152 +245,280 @@ fun GiftApp() {
     }
     GiftTheme(controller = themeController, languageController = languageController) {
         val backdrop = rememberLayerBackdrop()
-        Box(modifier = Modifier.fillMaxSize()) {
-            Scaffold(
-                modifier = Modifier.fillMaxSize(),
-                bottomBar = {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .navigationBarsPadding()
-                            .padding(horizontal = 16.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        FloatingBottomBar(
-                        modifier = Modifier.fillMaxWidth(0.8f),
-                        selectedIndex = {
-                            TAB_KEYS.indexOf(selectedTab).coerceAtLeast(0)
-                        },
-                        onSelected = { index ->
-                            onTabSelected(TAB_KEYS.getOrElse(index) { HomeKey })
-                        },
-                        backdrop = backdrop,
-                        tabsCount = 3,
-                        mode = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                            FloatingBottomBarMode.LiquidGlass
-                        } else {
-                            FloatingBottomBarMode.None
-                        },
-                    ) {
-                        FloatingBottomBarItem(
-                            onClick = { onTabSelected(HomeKey) }
-                        ) {
-                            Icon(
-                                imageVector = MiuixIcons.HorizontalSplit,
-                                contentDescription = stringResource(R.string.tab_home)
-                            )
-                            Text(stringResource(R.string.tab_home), fontSize = 11.sp)
-                        }
-                        FloatingBottomBarItem(
-                            onClick = { onTabSelected(AnswersKey) }
-                        ) {
-                            Icon(
-                                imageVector = MiuixIcons.ListView,
-                                contentDescription = stringResource(R.string.tab_answers)
-                            )
-                            Text(stringResource(R.string.tab_answers), fontSize = 11.sp)
-                        }
-                        FloatingBottomBarItem(
-                            onClick = { onTabSelected(SettingsKey) }
-                        ) {
-                            Icon(
-                                imageVector = MiuixIcons.Settings,
-                                contentDescription = stringResource(R.string.tab_settings)
-                            )
-                            Text(stringResource(R.string.tab_settings), fontSize = 11.sp)
-                        }
-                    }
-                    }
-                }
-            ) {
-                Box(Modifier.layerBackdrop(backdrop)) {
-                    NavDisplay(
-                        backStack = backStack,
-                        modifier = Modifier.fillMaxSize(),
-                        onBack = { navigator.pop() },
-                        // SaveableStateHolder keeps rememberSaveable state per destination across
-                        // navigation, the ViewModelStore decorator scopes ViewModels (and their
-                        // SavedStateHandle) to a single entry and clears them when it is popped.
-                        entryDecorators = listOf(
-                            rememberSaveableStateHolderNavEntryDecorator(),
-                            rememberViewModelStoreNavEntryDecorator(),
-                        ),
-                        transitionSpec = {
-                            (slideInHorizontally(
-                                initialOffsetX = { it },
-                                animationSpec = tween(300)
-                            ) + fadeIn(animationSpec = tween(300))) togetherWith
-                                (slideOutHorizontally(
-                                    targetOffsetX = { -it },
-                                    animationSpec = tween(300)
-                                ) + fadeOut(animationSpec = tween(300)))
-                        },
-                        popTransitionSpec = {
-                            (slideInHorizontally(
-                                initialOffsetX = { -it },
-                                animationSpec = tween(300)
-                            ) + fadeIn(animationSpec = tween(300))) togetherWith
-                                (slideOutHorizontally(
-                                    targetOffsetX = { it },
-                                    animationSpec = tween(300)
-                                ) + fadeOut(animationSpec = tween(300)))
-                        },
-                        // Drives the predictive back gesture with the same visuals as a normal pop
-                        predictivePopTransitionSpec = {
-                            (slideInHorizontally(
-                                initialOffsetX = { -it },
-                                animationSpec = tween(300)
-                            ) + fadeIn(animationSpec = tween(300))) togetherWith
-                                (slideOutHorizontally(
-                                    targetOffsetX = { it },
-                                    animationSpec = tween(300)
-                                ) + fadeOut(animationSpec = tween(300)))
-                        },
-                        entryProvider = entryProvider {
-                            entry<HomeKey> {
-                                HomeScreen()
-                            }
-                            entry<AnswersKey> {
-                                AnswersScreen()
-                            }
-                            entry<SettingsKey> {
-                                SettingsScreen(
-                                    onThemeUpdated = updateThemeMode,
-                                    onLanguageUpdated = updateLanguageCode,
-                                    currentLanguageCode = languageController.languageCode,
-                                    onCheckUpdate = {
-                                        val coroutineScope = kotlinx.coroutines.CoroutineScope(Dispatchers.Main)
-                                        coroutineScope.launch {
-                                            checkForUpdates()
-                                        }
-                                    },
-                                    isCheckingUpdate = isCheckingUpdate,
-                                    onNavigateToLicenses = {
-                                        navigator.push(LicensesKey)
-                                    }
-                                )
-                            }
-                            entry<LicensesKey> {
-                                LicensesScreen(
-                                    onBack = {
-                                        navigator.pop()
-                                    }
-                                )
-                            }
-                        }
-                    )
-                }
+
+        BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+            val isWideScreen = maxWidth >= 600.dp
+            val navMode = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                FloatingBottomBarMode.LiquidGlass
+            } else {
+                FloatingBottomBarMode.None
             }
-            
-            // Update dialog - placed outside Scaffold but inside Box to ensure correct z-order
-            UpdateDialog(
-                show = showUpdateDialog,
-                versionName = latestVersion,
-                changelog = changelog,
-                fileSize = fileSize,
-                onUpdate = handleUpdate,
-                onDismiss = { showUpdateDialog = false }
-            )
+
+            Box(modifier = Modifier.fillMaxSize()) {
+                Scaffold(
+                    modifier = Modifier.fillMaxSize(),
+                    bottomBar = {
+                        // Bottom liquid-glass nav bar — visible on narrow screens (< 600dp)
+                        AnimatedContent(
+                            targetState = isWideScreen,
+                            transitionSpec = {
+                                if (targetState) {
+                                    // Exiting bottom mode: slide down + fade out
+                                    (fadeIn(tween(250))) togetherWith
+                                        (slideOutVertically(tween(300)) { it } + fadeOut(tween(200)))
+                                } else {
+                                    // Entering bottom mode: slide up + fade in
+                                    (slideInVertically(tween(300)) { it } + fadeIn(tween(250))) togetherWith
+                                        (fadeOut(tween(200)))
+                                }
+                                .using(SizeTransform(clip = false))
+                            },
+                            label = "bottomNavTransition",
+                        ) { wide ->
+                            if (!wide) {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .navigationBarsPadding()
+                                        .padding(horizontal = 16.dp),
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    FloatingBottomBar(
+                                        modifier = Modifier.wrapContentWidth(),
+                                        selectedIndex = {
+                                            TAB_KEYS.indexOf(selectedTab).coerceAtLeast(0)
+                                        },
+                                        onSelected = { index ->
+                                            onTabSelected(TAB_KEYS.getOrElse(index) { HomeKey })
+                                        },
+                                        backdrop = backdrop,
+                                        tabsCount = 3,
+                                        mode = navMode,
+                                        autoWidth = true,
+                                        isTopMode = false,
+                                    ) {
+                                        FloatingBottomBarItem(
+                                            onClick = { onTabSelected(HomeKey) },
+                                            tabIndex = 0,
+                                        ) {
+                                            Icon(
+                                                imageVector = MiuixIcons.HorizontalSplit,
+                                                contentDescription = stringResource(R.string.tab_home),
+                                            )
+                                            Text(
+                                                stringResource(R.string.tab_home),
+                                                fontSize = 11.sp,
+                                                maxLines = 1,
+                                                softWrap = false,
+                                            )
+                                        }
+                                        FloatingBottomBarItem(
+                                            onClick = { onTabSelected(AnswersKey) },
+                                            tabIndex = 1,
+                                        ) {
+                                            Icon(
+                                                imageVector = MiuixIcons.ListView,
+                                                contentDescription = stringResource(R.string.tab_answers),
+                                            )
+                                            Text(
+                                                stringResource(R.string.tab_answers),
+                                                fontSize = 11.sp,
+                                                maxLines = 1,
+                                                softWrap = false,
+                                            )
+                                        }
+                                        FloatingBottomBarItem(
+                                            onClick = { onTabSelected(SettingsKey) },
+                                            tabIndex = 2,
+                                        ) {
+                                            Icon(
+                                                imageVector = MiuixIcons.Settings,
+                                                contentDescription = stringResource(R.string.tab_settings),
+                                            )
+                                            Text(
+                                                stringResource(R.string.tab_settings),
+                                                fontSize = 11.sp,
+                                                maxLines = 1,
+                                                softWrap = false,
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    topBar = {
+                        // Top text-only nav bar — visible on wide screens (>= 600dp)
+                        AnimatedContent(
+                            targetState = isWideScreen,
+                            transitionSpec = {
+                                if (targetState) {
+                                    // Entering top mode: slide down + fade in
+                                    (slideInVertically(tween(300)) { -it } + fadeIn(tween(250))) togetherWith
+                                        (fadeOut(tween(200)))
+                                } else {
+                                    // Exiting top mode: slide up + fade out
+                                    (fadeIn(tween(250))) togetherWith
+                                        (slideOutVertically(tween(300)) { -it } + fadeOut(tween(200)))
+                                }
+                                .using(SizeTransform(clip = false))
+                            },
+                            label = "topNavTransition",
+                        ) { wide ->
+                            if (wide) {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .statusBarsPadding()
+                                        .padding(horizontal = 16.dp, vertical = 6.dp),
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    FloatingBottomBar(
+                                        modifier = Modifier.wrapContentWidth(),
+                                        selectedIndex = {
+                                            TAB_KEYS.indexOf(selectedTab).coerceAtLeast(0)
+                                        },
+                                        onSelected = { index ->
+                                            onTabSelected(TAB_KEYS.getOrElse(index) { HomeKey })
+                                        },
+                                        backdrop = backdrop,
+                                        tabsCount = 3,
+                                        mode = navMode,
+                                        autoWidth = true,
+                                        isTopMode = true,
+                                    ) {
+                                        // Top mode: text-only, no icons
+                                        FloatingBottomBarItem(
+                                            onClick = { onTabSelected(HomeKey) },
+                                            tabIndex = 0,
+                                        ) {
+                                            Text(
+                                                stringResource(R.string.tab_home),
+                                                fontSize = 14.sp,
+                                                maxLines = 1,
+                                                softWrap = false,
+                                                overflow = TextOverflow.Ellipsis,
+                                            )
+                                        }
+                                        FloatingBottomBarItem(
+                                            onClick = { onTabSelected(AnswersKey) },
+                                            tabIndex = 1,
+                                        ) {
+                                            Text(
+                                                stringResource(R.string.tab_answers),
+                                                fontSize = 14.sp,
+                                                maxLines = 1,
+                                                softWrap = false,
+                                                overflow = TextOverflow.Ellipsis,
+                                            )
+                                        }
+                                        FloatingBottomBarItem(
+                                            onClick = { onTabSelected(SettingsKey) },
+                                            tabIndex = 2,
+                                        ) {
+                                            Text(
+                                                stringResource(R.string.tab_settings),
+                                                fontSize = 14.sp,
+                                                maxLines = 1,
+                                                softWrap = false,
+                                                overflow = TextOverflow.Ellipsis,
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                ) {
+                    Box(Modifier.layerBackdrop(backdrop)) {
+                        NavDisplay(
+                            backStack = backStack,
+                            modifier = Modifier.fillMaxSize(),
+                            onBack = { navigator.pop() },
+                            // SaveableStateHolder keeps rememberSaveable state per destination across
+                            // navigation, the ViewModelStore decorator scopes ViewModels (and their
+                            // SavedStateHandle) to a single entry and clears them when it is popped.
+                            entryDecorators = listOf(
+                                rememberSaveableStateHolderNavEntryDecorator(),
+                                rememberViewModelStoreNavEntryDecorator(),
+                            ),
+                            transitionSpec = {
+                                (slideInHorizontally(
+                                    initialOffsetX = { it },
+                                    animationSpec = tween(300)
+                                ) + fadeIn(animationSpec = tween(300))) togetherWith
+                                    (slideOutHorizontally(
+                                        targetOffsetX = { -it },
+                                        animationSpec = tween(300)
+                                    ) + fadeOut(animationSpec = tween(300)))
+                            },
+                            popTransitionSpec = {
+                                (slideInHorizontally(
+                                    initialOffsetX = { -it },
+                                    animationSpec = tween(300)
+                                ) + fadeIn(animationSpec = tween(300))) togetherWith
+                                    (slideOutHorizontally(
+                                        targetOffsetX = { it },
+                                        animationSpec = tween(300)
+                                    ) + fadeOut(animationSpec = tween(300)))
+                            },
+                            // Drives the predictive back gesture with the same visuals as a normal pop
+                            predictivePopTransitionSpec = {
+                                (slideInHorizontally(
+                                    initialOffsetX = { -it },
+                                    animationSpec = tween(300)
+                                ) + fadeIn(animationSpec = tween(300))) togetherWith
+                                    (slideOutHorizontally(
+                                        targetOffsetX = { it },
+                                        animationSpec = tween(300)
+                                    ) + fadeOut(animationSpec = tween(300)))
+                            },
+                            entryProvider = entryProvider {
+                                entry<HomeKey> {
+                                    HomeScreen()
+                                }
+                                entry<AnswersKey> {
+                                    AnswersScreen()
+                                }
+                                entry<SettingsKey> {
+                                    SettingsScreen(
+                                        onThemeUpdated = updateThemeMode,
+                                        onLanguageUpdated = updateLanguageCode,
+                                        currentLanguageCode = languageController.languageCode,
+                                        onCheckUpdate = {
+                                            val coroutineScope = kotlinx.coroutines.CoroutineScope(Dispatchers.Main)
+                                            coroutineScope.launch {
+                                                checkForUpdates()
+                                            }
+                                        },
+                                        isCheckingUpdate = isCheckingUpdate,
+                                        onNavigateToLicenses = {
+                                            navigator.push(LicensesKey)
+                                        }
+                                    )
+                                }
+                                entry<LicensesKey> {
+                                    LicensesScreen(
+                                        onBack = {
+                                            navigator.pop()
+                                        }
+                                    )
+                                }
+                            }
+                        )
+                    }
+                }
+
+                // Update dialog - placed outside Scaffold but inside Box to ensure correct z-order
+                UpdateDialog(
+                    show = showUpdateDialog,
+                    versionName = latestVersion,
+                    changelog = changelog,
+                    fileSize = fileSize,
+                    onUpdate = handleUpdate,
+                    onDismiss = { showUpdateDialog = false }
+                )
+            }
         }
     }
 }

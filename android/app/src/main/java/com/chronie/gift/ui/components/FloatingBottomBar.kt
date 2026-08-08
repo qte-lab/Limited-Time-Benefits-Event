@@ -14,11 +14,10 @@ import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.requiredWidth
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.Composable
@@ -29,6 +28,7 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
@@ -86,6 +86,10 @@ import top.yukonga.miuix.kmp.theme.LocalContentColor as MiuixLocalContentColor
 val LocalFloatingBottomBarContentColor = staticCompositionLocalOf { Color.Unspecified }
 val LocalFloatingBottomBarTabScale = staticCompositionLocalOf { { 1f } }
 
+// Composition locals for auto-width tab measurement
+val LocalFloatingBottomBarOnTabMeasured = staticCompositionLocalOf<((Int, Float) -> Unit)?> { null }
+val LocalFloatingBottomBarAutoWidth = staticCompositionLocalOf { false }
+
 @Immutable
 class FloatingBottomBarColors(
     val containerColor: Color,
@@ -137,7 +141,7 @@ private val iosIndicatorSpecular: Highlight = Highlight(
 
 private const val LIGHT_REF_X = 0.5f
 private const val LIGHT_REF_Y = 0.7f
-private const val GRAVITY_DIR_THRESHOLD_SQ = 0.01f 
+private const val GRAVITY_DIR_THRESHOLD_SQ = 0.01f
 
 @Composable
 private fun rememberGravityRotatedHighlight(
@@ -179,31 +183,44 @@ private fun rememberGravityRotatedHighlight(
 fun RowScope.FloatingBottomBarItem(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    tabIndex: Int = -1,
     content: @Composable ColumnScope.() -> Unit
 ) {
     val scale = LocalFloatingBottomBarTabScale.current
     val contentColor = LocalFloatingBottomBarContentColor.current
+    val autoWidth = LocalFloatingBottomBarAutoWidth.current
+    val onTabMeasured = LocalFloatingBottomBarOnTabMeasured.current
 
+// Each item wraps its content width but fills the Row's height so that the
+    // CircleShape clip doesn't shave off the bottom of the text.
     Column(
-        modifier
-            .clip(CircleShape)
-            .clickable(
-                interactionSource = null,
-                indication = null,
-                role = Role.Tab,
-                onClick = onClick
-            )
-            .fillMaxHeight()
-            .weight(1f)
-            .graphicsLayer {
-                val s = scale()
-                scaleX = s
-                scaleY = s
-            },
+    modifier
+        .fillMaxHeight()
+        .wrapContentWidth()
+        .clip(CircleShape)
+        .clickable(
+            interactionSource = null,
+            indication = null,
+            role = Role.Tab,
+            onClick = onClick
+        )
+        .then(
+            if (autoWidth && tabIndex >= 0 && onTabMeasured != null) {
+                Modifier.onGloballyPositioned { coords ->
+                    onTabMeasured(tabIndex, coords.size.width.toFloat())
+                }
+            } else {
+                Modifier
+            }
+        )
+        .graphicsLayer {
+            val s = scale()
+            scaleX = s
+            scaleY = s
+        },
         verticalArrangement = Arrangement.spacedBy(1.dp, Alignment.CenterVertically),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Provide the color to Miuix components seamlessly
         CompositionLocalProvider(
             MiuixLocalContentColor provides contentColor,
         ) {
@@ -221,6 +238,8 @@ fun FloatingBottomBar(
     tabsCount: Int,
     mode: FloatingBottomBarMode = FloatingBottomBarMode.LiquidGlass,
     colors: FloatingBottomBarColors = FloatingBottomBarDefaults.colors(),
+    autoWidth: Boolean = true,
+    isTopMode: Boolean = false,
     content: @Composable RowScope.() -> Unit
 ) {
     val isInDark = MiuixTheme.colorSchemeMode == ColorSchemeMode.Dark
@@ -235,12 +254,125 @@ fun FloatingBottomBar(
     val isLtr = LocalLayoutDirection.current == LayoutDirection.Ltr
     val animationScope = rememberCoroutineScope()
 
-    var tabWidthPx by remember { mutableFloatStateOf(0f) }
     var totalWidthPx by remember { mutableFloatStateOf(0f) }
+
+    // Per-tab measured widths. Using mutableStateOf with a List so that
+    // derivedStateOf reliably picks up changes.
+    var tabMeasuredWidths by remember(tabsCount) {
+        mutableStateOf(List(tabsCount) { 0f })
+    }
+
+    val onTabMeasured: (Int, Float) -> Unit = remember {
+        { index, width ->
+            if (index in tabMeasuredWidths.indices &&
+                tabMeasuredWidths[index] != width && width > 0f
+            ) {
+                tabMeasuredWidths = tabMeasuredWidths.toMutableList().also {
+                    it[index] = width
+                }
+            }
+        }
+    }
+
+    // Bar dimensions — top mode is shorter (text-only), bottom mode is taller (icon + text)
+    val barHeight = if (isTopMode) 48.dp else 64.dp
+    val innerBarHeight = if (isTopMode) 40.dp else 56.dp
+    val rowHorizontalPadding = 20.dp
+    val rowPaddingPx = with(density) { rowHorizontalPadding.toPx() }
+    val rowPaddingTotalPx = rowPaddingPx * 2f
+
+    // Forward-reference for the drag value (set after dampedDragAnimation is created).
+    val dragValueRef = remember { mutableFloatStateOf(0f) }
+
+    // Tab centers and widths derived from measured widths + fixed gap.
+    // Using spacedBy ensures the gap is always exactly `fixedGapPx`.
+    val fixedGapPx = with(density) { 20.dp.toPx() }
+
+    val allMeasured by remember {
+        derivedStateOf {
+            tabMeasuredWidths.size == tabsCount &&
+                tabMeasuredWidths.all { it > 0f }
+        }
+    }
+
+    // Tab centers (px, relative to the Row's content origin) computed from
+    // measured widths and the fixed gap.
+    val tabCentersPx: List<Float> by remember {
+        derivedStateOf {
+            if (allMeasured) {
+                var cumulativeX = 0f
+                tabMeasuredWidths.mapIndexed { i, w ->
+                    val center = cumulativeX + w / 2f
+                    cumulativeX += w + fixedGapPx
+                    center
+                }
+            } else {
+                emptyList()
+            }
+        }
+    }
+
+    // Extra horizontal padding on each side of the indicator pill so it doesn't
+    // sit flush against the label text or icon.
+    val indicatorExtraPadPx = with(density) { 12.dp.toPx() } // 6.dp per side
+
+    // Indicator width = measured content width + extra padding on both sides.
+    val indicatorWidthPx: Float by remember {
+        derivedStateOf {
+            if (tabMeasuredWidths.isEmpty() || tabMeasuredWidths.any { it <= 0f }) {
+                72f + 2f * indicatorExtraPadPx
+            } else {
+                val v = dragValueRef.floatValue
+                val lastIndex = tabMeasuredWidths.lastIndex
+                val idx = v.toInt().coerceIn(0, lastIndex)
+                val nextIdx = (idx + 1).coerceAtMost(lastIndex)
+                val fraction = (v - idx).coerceIn(0f, 1f)
+                val contentW = lerp(
+                    tabMeasuredWidths.getOrElse(idx) { 72f },
+                    tabMeasuredWidths.getOrElse(nextIdx) { 72f },
+                    fraction
+                )
+                contentW + 2f * indicatorExtraPadPx
+            }
+        }
+    }
+
+    // Indicator center X (within the Row's content area, i.e. from the left padding edge).
+    val indicatorCenterX: Float by remember {
+        derivedStateOf {
+            val centers = tabCentersPx
+            if (centers.isEmpty()) {
+                // Pre-measurement fallback: evenly distribute by index.
+                val fallback = 72f
+                val v = dragValueRef.floatValue
+                rowPaddingPx + v * (fallback + fixedGapPx) + fallback / 2f
+            } else {
+                val v = dragValueRef.floatValue
+                val lastIndex = centers.lastIndex
+                val idx = v.toInt().coerceIn(0, lastIndex)
+                val nextIdx = (idx + 1).coerceAtMost(lastIndex)
+                val fraction = (v - idx).coerceIn(0f, 1f)
+                val c0 = centers.getOrElse(idx) { 0f }
+                val c1 = centers.getOrElse(nextIdx) { 0f }
+                rowPaddingPx + lerp(c0, c1, fraction)
+            }
+        }
+    }
+
+    // Average tab width for drag sensitivity.
+    val avgTabWidthPx: Float by remember {
+        derivedStateOf {
+            if (tabMeasuredWidths.isNotEmpty() && tabMeasuredWidths.all { it > 0f }) {
+                tabMeasuredWidths.average().toFloat()
+            } else {
+                72f + fixedGapPx
+            }
+        }
+    }
 
     val offsetAnimation = remember { Animatable(0f) }
     val rubberBandPx = with(density) { 4.dp.toPx() }
-    val panelOffset by remember(rubberBandPx) {
+    val panelOffset: Float by remember(rubberBandPx, totalWidthPx) {
         derivedStateOf {
             if (totalWidthPx == 0f) {
                 0f
@@ -259,7 +391,9 @@ fun FloatingBottomBar(
 
     val holder = remember { DampedDragAnimationHolder() }
 
-    val dampedDragAnimation = remember(animationScope, tabsCount, density, isLtr) {
+    val dampedDragAnimation = remember(
+        animationScope, tabsCount, density, isLtr, avgTabWidthPx
+    ) {
         DampedDragAnimation(
             animationScope = animationScope,
             initialValue = selectedIndex().toFloat(),
@@ -269,15 +403,19 @@ fun FloatingBottomBar(
             pressedScale = 78f / 56f,
             canDrag = { offset ->
                 val anim = holder.instance ?: return@DampedDragAnimation true
-                if (tabWidthPx == 0f) return@DampedDragAnimation false
+                if (avgTabWidthPx == 0f) return@DampedDragAnimation false
 
                 val currentValue = anim.value
-                val indicatorX = currentValue * tabWidthPx
-                val padding = with(density) { 4.dp.toPx() }
-                val globalTouchX = if (isLtr) {
-                    padding + indicatorX + offset.x
+                val centers = tabCentersPx
+                val indicatorCenter = if (centers.isEmpty()) {
+                    rowPaddingPx + currentValue * (72f + fixedGapPx) + 72f / 2f
                 } else {
-                    totalWidthPx - padding - tabWidthPx - indicatorX + offset.x
+                    rowPaddingPx + centers.getOrElse(currentValue.toInt()) { 0f }
+                }
+                val globalTouchX = if (isLtr) {
+                    indicatorCenter + offset.x
+                } else {
+                    totalWidthPx - indicatorCenter + offset.x
                 }
                 globalTouchX in 0f..totalWidthPx
             },
@@ -291,9 +429,9 @@ fun FloatingBottomBar(
                 }
             },
             onDrag = { _, dragAmount ->
-                if (tabWidthPx > 0) {
+                if (avgTabWidthPx > 0) {
                     updateValue(
-                        (targetValue + dragAmount.x / tabWidthPx * if (isLtr) 1f else -1f)
+                        (targetValue + dragAmount.x / avgTabWidthPx * if (isLtr) 1f else -1f)
                             .fastCoerceIn(0f, (tabsCount - 1).toFloat())
                     )
                     animationScope.launch {
@@ -302,6 +440,12 @@ fun FloatingBottomBar(
                 }
             }
         ).also { holder.instance = it }
+    }
+
+    // Keep dragValueRef in sync with the actual drag animation value.
+    LaunchedEffect(dampedDragAnimation) {
+        snapshotFlow { dampedDragAnimation.value }
+            .collectLatest { dragValueRef.floatValue = it }
     }
 
     LaunchedEffect(selectedIndex) {
@@ -316,13 +460,22 @@ fun FloatingBottomBar(
 
     val interactiveHighlight =
         if (isLiquidGlassMode && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            remember(animationScope, tabWidthPx) {
+            remember(animationScope, avgTabWidthPx) {
                 InteractiveHighlight(
                     animationScope = animationScope,
                     position = { size, _ ->
+                        val centers = tabCentersPx
+                        val center = if (centers.isEmpty()) {
+                            val v = dampedDragAnimation.value
+                            rowPaddingPx + v * (72f + fixedGapPx) + 72f / 2f
+                        } else {
+                            rowPaddingPx + centers.getOrElse(
+                                dampedDragAnimation.value.toInt()
+                            ) { 0f }
+                        }
                         Offset(
-                            if (isLtr) (dampedDragAnimation.value + 0.5f) * tabWidthPx + panelOffset
-                            else size.width - (dampedDragAnimation.value + 0.5f) * tabWidthPx + panelOffset,
+                            if (isLtr) center + panelOffset
+                            else size.width - center + panelOffset,
                             size.height / 2f
                         )
                     }
@@ -337,19 +490,32 @@ fun FloatingBottomBar(
 
     val combinedBackdrop = rememberCombinedBackdrop(backdrop, tabsBackdrop)
 
+    // Outer Box — fills the width requested by the caller (e.g. 80% or wrapContent)
+    // and centers the inner content so that when the bar is wider than its tabs,
+    // the tabs are visually centered rather than left-aligned.
     Box(
         modifier = modifier,
-        contentAlignment = Alignment.CenterStart
+        contentAlignment = Alignment.Center
     ) {
-        
-        CompositionLocalProvider(LocalFloatingBottomBarContentColor provides colors.contentColor) {
+        // Inner Box — matches the actual content width so that translationX
+        // values used for indicator positioning are absolute (relative to the
+        // left edge of this box).
+        Box(
+            modifier = Modifier.wrapContentWidth(),
+            contentAlignment = Alignment.CenterStart
+        ) {
+
+        // ---- Main Row (content layer) ----
+        CompositionLocalProvider(
+            LocalFloatingBottomBarContentColor provides colors.contentColor,
+            LocalFloatingBottomBarAutoWidth provides autoWidth,
+            LocalFloatingBottomBarOnTabMeasured provides onTabMeasured,
+        ) {
             Row(
                 Modifier
-                    .fillMaxWidth()
+                    .wrapContentWidth()
                     .onGloballyPositioned { coords ->
                         totalWidthPx = coords.size.width.toFloat()
-                        val contentWidthPx = totalWidthPx - with(density) { 8.dp.toPx() }
-                        tabWidthPx = (contentWidthPx / tabsCount).coerceAtLeast(0f)
                     }
                     .graphicsLayer { translationX = panelOffset }
                     .dropShadow(
@@ -381,7 +547,11 @@ fun FloatingBottomBar(
                                 highlight = { baseHighlight.copy(alpha = 0.75f) },
                                 layerBlock = {
                                     val width = size.width.coerceAtLeast(1f)
-                                    val s = lerp(1f, 1f + 16.dp.toPx() / width, dampedDragAnimation.pressProgress)
+                                    val s = lerp(
+                                        1f,
+                                        1f + 16.dp.toPx() / width,
+                                        dampedDragAnimation.pressProgress
+                                    )
                                     scaleX = s
                                     scaleY = s
                                 },
@@ -402,20 +572,30 @@ fun FloatingBottomBar(
                             Modifier.background(containerColor, pillShape)
                         }
                     )
-                    .then(if (isLiquidGlassMode && interactiveHighlight != null) interactiveHighlight.modifier else Modifier)
-                    .height(64.dp)
-                    .padding(4.dp),
+                    .then(
+                        if (isLiquidGlassMode && interactiveHighlight != null) {
+                            interactiveHighlight.modifier
+                        } else {
+                            Modifier
+                        }
+                    )
+                    .height(barHeight)
+                    .padding(horizontal = rowHorizontalPadding),
                 verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(20.dp),
                 content = content
             )
         }
 
+        // ---- Glass overlay layer (liquid glass mode only) ----
         if (isLiquidGlassMode) {
             CompositionLocalProvider(
                 LocalFloatingBottomBarTabScale provides {
                     lerp(1f, 1.2f, dampedDragAnimation.pressProgress)
                 },
-                LocalFloatingBottomBarContentColor provides colors.activeContentColor
+                LocalFloatingBottomBarContentColor provides colors.activeContentColor,
+                LocalFloatingBottomBarAutoWidth provides autoWidth,
+                LocalFloatingBottomBarOnTabMeasured provides null,
             ) {
                 Row(
                     Modifier
@@ -437,24 +617,30 @@ fun FloatingBottomBar(
                             onDrawSurface = { drawRect(containerColor) },
                         )
                         .then(interactiveHighlight?.modifier ?: Modifier)
-                        .height(56.dp)
-                        .padding(horizontal = 4.dp),
+                        .height(innerBarHeight)
+                        .padding(horizontal = rowHorizontalPadding),
                     verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(20.dp),
                 ) {
                     content()
                 }
             }
         }
 
-        if (tabWidthPx > 0f) {
-            val tabWidthDp = with(density) { tabWidthPx.toDp() }
+        // ---- Indicator pill ----
+        if (totalWidthPx > 0f) {
+            val indicatorWidthDp = with(density) { indicatorWidthPx.toDp() }
+
             if (isLiquidGlassMode) {
                 Box(
                     Modifier
-                        .padding(horizontal = 4.dp)
                         .graphicsLayer {
-                            val progressOffset = dampedDragAnimation.value * tabWidthPx
-                            translationX = if (isLtr) progressOffset + panelOffset else -progressOffset + panelOffset
+                            // Position the pill so it's centered on the selected tab.
+                            translationX = if (isLtr) {
+                                indicatorCenterX - indicatorWidthPx / 2f + panelOffset
+                            } else {
+                                -(indicatorCenterX - indicatorWidthPx / 2f) + panelOffset
+                            }
                         }
                         .then(interactiveHighlight?.gestureModifier ?: Modifier)
                         .then(dampedDragAnimation.modifier)
@@ -470,7 +656,9 @@ fun FloatingBottomBar(
                                     chromaticAberration = 0.5f,
                                 )
                             },
-                            highlight = { pillHighlight.copy(alpha = dampedDragAnimation.pressProgress) },
+                            highlight = {
+                                pillHighlight.copy(alpha = dampedDragAnimation.pressProgress)
+                            },
                             layerBlock = {
                                 scaleX = dampedDragAnimation.scaleX
                                 scaleY = dampedDragAnimation.scaleY
@@ -481,7 +669,8 @@ fun FloatingBottomBar(
                             onDrawSurface = {
                                 val progress = dampedDragAnimation.pressProgress
                                 drawRect(
-                                    color = if (!isInDark) Color.Black.copy(alpha = 0.1f) else Color.White.copy(alpha = 0.1f),
+                                    color = if (!isInDark) Color.Black.copy(alpha = 0.1f)
+                                    else Color.White.copy(alpha = 0.1f),
                                     alpha = 1f - progress,
                                 )
                                 drawRect(Color.Black.copy(alpha = 0.03f * progress))
@@ -494,41 +683,27 @@ fun FloatingBottomBar(
                                 alpha = dampedDragAnimation.pressProgress,
                             )
                         }
-                        .height(56.dp)
-                        .width(tabWidthDp)
+                        .height(innerBarHeight)
+                        .width(indicatorWidthDp)
                 )
             } else {
                 Box(
                     modifier = Modifier
-                        .padding(horizontal = 4.dp)
                         .graphicsLayer {
-                            val progressOffset = dampedDragAnimation.value * tabWidthPx
-                            translationX = if (isLtr) progressOffset + panelOffset else -progressOffset + panelOffset
+                            translationX = if (isLtr) {
+                                indicatorCenterX - indicatorWidthPx / 2f + panelOffset
+                            } else {
+                                -(indicatorCenterX - indicatorWidthPx / 2f) + panelOffset
+                            }
                         }
                         .then(dampedDragAnimation.modifier)
                         .clip(pillShape)
                         .background(colors.indicatorColor.copy(alpha = 0.15f), pillShape)
-                        .height(56.dp)
-                        .width(tabWidthDp),
-                    contentAlignment = Alignment.CenterStart
-                ) {
-                    CompositionLocalProvider(LocalFloatingBottomBarContentColor provides colors.activeContentColor) {
-                        Row(
-                            Modifier
-                                .clearAndSetSemantics {}
-                                .wrapContentWidth(align = Alignment.Start, unbounded = true)
-                                .requiredWidth(with(density) { (totalWidthPx - 8.dp.toPx()).toDp() })
-                                .height(56.dp)
-                                .graphicsLayer {
-                                    val progressOffset = dampedDragAnimation.value * tabWidthPx
-                                    translationX = if (isLtr) -progressOffset else progressOffset
-                                },
-                            verticalAlignment = Alignment.CenterVertically,
-                            content = content
-                        )
-                    }
-                }
+                        .height(innerBarHeight)
+                        .width(indicatorWidthDp)
+                )
             }
         }
     }
+}
 }
