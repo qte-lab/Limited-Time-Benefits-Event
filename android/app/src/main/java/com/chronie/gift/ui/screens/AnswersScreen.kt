@@ -130,49 +130,6 @@ fun getMonthName(month: String): String {
 }
 
 @Composable
-fun Watermark() {
-    val watermarkText = stringResource(id = R.string.watermark_text)
-    val rows = 4
-    val cols = 1
-    
-    val fontSize = 24.sp
-    
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color.Transparent)
-    ) {
-        LazyVerticalGrid(
-            columns = GridCells.Fixed(cols),
-            modifier = Modifier.fillMaxSize(),
-            content = {
-                items(rows * cols) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(150.dp)
-                            .padding(16.dp)
-                            .wrapContentSize(Alignment.Center)
-                    ) {
-                        Text(
-                            text = watermarkText,
-                            fontSize = fontSize,
-                            color = MiuixTheme.colorScheme.onBackground.copy(alpha = 0.25f),
-                            textAlign = TextAlign.Center,
-                            letterSpacing = 0.15.em,
-                            maxLines = 1,
-                            overflow = TextOverflow.Visible,
-                            modifier = Modifier
-                                .rotate(-30f)
-                        )
-                    }
-                }
-            }
-        )
-    }
-}
-
-@Composable
 fun Sidebar(
     files: List<String>,
     onFileSelected: (String) -> Unit,
@@ -365,8 +322,6 @@ fun MainContent(paddingValues: PaddingValues) {
         onRefresh = { refreshTrigger++ }
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
-            Watermark()
-
             if (isSmallScreen) {
                 Column(
                     modifier = Modifier

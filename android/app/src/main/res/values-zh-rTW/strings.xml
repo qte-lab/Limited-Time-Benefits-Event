@@ -20,7 +20,6 @@
     <string name="loading_text">載入中…</string>
     <string name="error_title">錯誤</string>
     <string name="please_select_file">請選擇文件</string>
-    <string name="watermark_text">版權所有、禁止盗用</string>
     <string name="failed_to_get_files">無法獲取文件列表</string>
     <string name="failed_to_get_content">無法獲取文件內容</string>
     <string name="error_getting_files">獲取文件列表失敗</string>

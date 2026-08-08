@@ -20,7 +20,6 @@
     <string name="loading_text">Loading…</string>
     <string name="error_title">Error</string>
     <string name="please_select_file">Please select a file</string>
-    <string name="watermark_text">All rights reserved. Unauthorized use prohibited.</string>
     <string name="failed_to_get_files">Failed to get file list</string>
     <string name="failed_to_get_content">Failed to get file content</string>
     <string name="error_getting_files">Error getting file list</string>
