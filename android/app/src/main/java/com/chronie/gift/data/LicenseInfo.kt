@@ -95,35 +95,35 @@ END OF TERMS AND CONDITIONS
         ),
         LicenseInfo(
             name = "AndroidX Navigation 3",
-            version = "1.1.4",
+            version = "1.1.5",
             license = "Apache License 2.0",
             url = "https://developer.android.com/jetpack/androidx/releases/navigation3",
             licenseText = APACHE_LICENSE_2_0
         ),
         LicenseInfo(
             name = "Ktor Client",
-            version = "3.5.1",
+            version = "3.5.2",
             license = "Apache License 2.0",
             url = "https://github.com/ktorio/ktor",
             licenseText = APACHE_LICENSE_2_0
         ),
         LicenseInfo(
             name = "Ktor Client Android",
-            version = "3.5.1",
+            version = "3.5.2",
             license = "Apache License 2.0",
             url = "https://github.com/ktorio/ktor",
             licenseText = APACHE_LICENSE_2_0
         ),
         LicenseInfo(
             name = "Ktor Client Content Negotiation",
-            version = "3.5.1",
+            version = "3.5.2",
             license = "Apache License 2.0",
             url = "https://github.com/ktorio/ktor",
             licenseText = APACHE_LICENSE_2_0
         ),
         LicenseInfo(
             name = "Ktor Serialization Kotlinx JSON",
-            version = "3.5.1",
+            version = "3.5.2",
             license = "Apache License 2.0",
             url = "https://github.com/ktorio/ktor",
             licenseText = APACHE_LICENSE_2_0

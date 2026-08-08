@@ -63,7 +63,7 @@ gift/
 ## Technology Stack
 
 ### Backend
-- **Runtime**: Go 1.26.4
+- **Runtime**: Go 1.26.5
 - **Standard Library**: net/http, encoding/json, os, path/filepath, sync
 - **Features**:
   - Built-in HTTP server
@@ -75,11 +75,11 @@ gift/
 - **UI Framework**: Jetpack Compose
 - **Design System**: Miuix KMP 0.9.3
 - **Key Libraries**:
-  - Ktor Client 3.5.1 - HTTP client
+  - Ktor Client 3.5.2 - HTTP client
   - Coil 3.5.0 - Image loading
   - Kotlinx Serialization - JSON serialization
   - Miuix KMP - Design components (ui, preference, icons, blur)
-  - Navigation Compose 2.9.8 - Navigation
+  - Nav3 1.1.5 - Navigation
 
 ## API Endpoints
 
@@ -297,10 +297,3 @@ GOOS=linux GOARCH=amd64 go build -o gift-server
 GOOS=darwin GOARCH=arm64 go build -o gift-server
 ```
 
-## License
-
-NO LICENSE, DON'T USE THIS CODE FOR COMMERCIAL PURPOSES.
-
-## Author
-
-Chronie
