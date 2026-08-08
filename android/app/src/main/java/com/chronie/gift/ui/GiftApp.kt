@@ -17,6 +17,7 @@ import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -26,14 +27,17 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
-import androidx.navigation.compose.rememberNavController
+import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
+import androidx.navigation3.runtime.NavKey
+import androidx.navigation3.runtime.entryProvider
+import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
+import androidx.navigation3.ui.NavDisplay
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
 import com.chronie.gift.data.LanguageManager
 import com.chronie.gift.data.ThemeManager
 import com.chronie.gift.data.TabManager
@@ -45,7 +49,14 @@ import com.chronie.gift.data.AppDownloadManager
 import top.yukonga.miuix.kmp.blur.rememberLayerBackdrop
 import top.yukonga.miuix.kmp.blur.layerBackdrop
 import com.chronie.gift.ui.components.UpdateDialog
-import com.chronie.gift.ui.navigation.NavRoutes
+import com.chronie.gift.ui.navigation.AnswersKey
+import com.chronie.gift.ui.navigation.HomeKey
+import com.chronie.gift.ui.navigation.LicensesKey
+import com.chronie.gift.ui.navigation.SettingsKey
+import com.chronie.gift.ui.navigation.TAB_KEYS
+import com.chronie.gift.ui.navigation.TabNavKey
+import com.chronie.gift.ui.navigation.rememberGiftNavigator
+import com.chronie.gift.ui.navigation.tabKeyOf
 import com.chronie.gift.ui.screens.AnswersScreen
 import com.chronie.gift.ui.screens.HomeScreen
 import com.chronie.gift.R
@@ -64,18 +75,39 @@ import kotlinx.coroutines.launch
 @Composable
 fun GiftApp() {
     val context = LocalContext.current
-    
-    // Compose manage navigation controller
-    val navController = rememberNavController()
-    
+
     // Tab management
     val tabManager = remember { TabManager(context) }
-    val savedTab = tabManager.getSavedTab()
-    
-    // Selected tab
-    var selectedTab by remember {
-        mutableStateOf(savedTab)
+    val savedTab = remember { tabManager.getSavedTab() }
+
+    // Initial back stack: the home tab is always the root so that back always leads there, and the
+    // tab the user left off on is restored on top of it. These keys are only applied the first time
+    // the back stack is built; after a configuration change or process death the persisted stack is
+    // restored instead.
+    val initialBackStack = remember(savedTab) {
+        val restoredTab = tabKeyOf(savedTab)
+        if (restoredTab == HomeKey) {
+            arrayOf<NavKey>(HomeKey)
+        } else {
+            arrayOf<NavKey>(HomeKey, restoredTab)
+        }
     }
+
+    // Navigation 3 back stack, wrapped so that call sites keep reading like the old NavController
+    val navigator = rememberGiftNavigator(*initialBackStack)
+    val backStack = navigator.backStack
+
+    // The highlighted tab is derived from the back stack instead of being tracked separately, so
+    // the bottom bar stays in sync when the user navigates back with the system gesture.
+    val selectedTab: TabNavKey by remember {
+        derivedStateOf { backStack.lastOrNull { it is TabNavKey } as? TabNavKey ?: HomeKey }
+    }
+
+    // Persist whichever tab is currently on top so the next launch restores it
+    LaunchedEffect(selectedTab) {
+        tabManager.saveTab(selectedTab.tabId)
+    }
+
     
     // Theme management
     val themeManager = remember { ThemeManager(context) }
@@ -174,16 +206,18 @@ fun GiftApp() {
     LaunchedEffect(Unit) {
         checkForUpdates()
     }
-    
-    // Navigate to saved tab when app starts
-    LaunchedEffect(savedTab) {
-        when (savedTab) {
-            NavRoutes.HOME -> navController.navigate(NavRoutes.HOME)
-            NavRoutes.ANSWERS -> navController.navigate(NavRoutes.ANSWERS)
-            NavRoutes.SETTINGS -> navController.navigate(NavRoutes.SETTINGS)
-        }
+
+    // Switching tabs pushes the tab onto the shared back stack, exactly like the previous
+    // NavController based implementation. launchSingleTop keeps a tap on the already selected tab
+    // from stacking a duplicate entry.
+    //
+    // To instead get the "classic" bottom bar behavior where the back stack never grows past two
+    // entries, change this to:
+    //   navigator.navigate(tab, popUpTo = HomeKey, launchSingleTop = true)
+    val onTabSelected: (TabNavKey) -> Unit = { tab ->
+        navigator.navigate(tab, launchSingleTop = true)
     }
-    
+
     // Handle update download
     val handleUpdate = {
         try {
@@ -217,27 +251,10 @@ fun GiftApp() {
                         FloatingBottomBar(
                         modifier = Modifier.fillMaxWidth(0.8f),
                         selectedIndex = {
-                            when (selectedTab) {
-                                NavRoutes.HOME -> 0
-                                NavRoutes.ANSWERS -> 1
-                                NavRoutes.SETTINGS -> 2
-                                else -> 0
-                            }
+                            TAB_KEYS.indexOf(selectedTab).coerceAtLeast(0)
                         },
                         onSelected = { index ->
-                            val tab = when (index) {
-                                0 -> NavRoutes.HOME
-                                1 -> NavRoutes.ANSWERS
-                                2 -> NavRoutes.SETTINGS
-                                else -> NavRoutes.HOME
-                            }
-                            selectedTab = tab
-                            tabManager.saveTab(tab)
-                            when (tab) {
-                                NavRoutes.HOME -> navController.navigate(NavRoutes.HOME)
-                                NavRoutes.ANSWERS -> navController.navigate(NavRoutes.ANSWERS)
-                                NavRoutes.SETTINGS -> navController.navigate(NavRoutes.SETTINGS)
-                            }
+                            onTabSelected(TAB_KEYS.getOrElse(index) { HomeKey })
                         },
                         backdrop = backdrop,
                         tabsCount = 3,
@@ -248,12 +265,7 @@ fun GiftApp() {
                         },
                     ) {
                         FloatingBottomBarItem(
-                            onClick = {
-                                val tab = NavRoutes.HOME
-                                selectedTab = tab
-                                tabManager.saveTab(tab)
-                                navController.navigate(NavRoutes.HOME)
-                            }
+                            onClick = { onTabSelected(HomeKey) }
                         ) {
                             Icon(
                                 imageVector = MiuixIcons.HorizontalSplit,
@@ -262,12 +274,7 @@ fun GiftApp() {
                             Text(stringResource(R.string.tab_home), fontSize = 11.sp)
                         }
                         FloatingBottomBarItem(
-                            onClick = {
-                                val tab = NavRoutes.ANSWERS
-                                selectedTab = tab
-                                tabManager.saveTab(tab)
-                                navController.navigate(NavRoutes.ANSWERS)
-                            }
+                            onClick = { onTabSelected(AnswersKey) }
                         ) {
                             Icon(
                                 imageVector = MiuixIcons.ListView,
@@ -276,12 +283,7 @@ fun GiftApp() {
                             Text(stringResource(R.string.tab_answers), fontSize = 11.sp)
                         }
                         FloatingBottomBarItem(
-                            onClick = {
-                                val tab = NavRoutes.SETTINGS
-                                selectedTab = tab
-                                tabManager.saveTab(tab)
-                                navController.navigate(NavRoutes.SETTINGS)
-                            }
+                            onClick = { onTabSelected(SettingsKey) }
                         ) {
                             Icon(
                                 imageVector = MiuixIcons.Settings,
@@ -294,65 +296,81 @@ fun GiftApp() {
                 }
             ) {
                 Box(Modifier.layerBackdrop(backdrop)) {
-                    NavHost(
-                        navController = navController,
-                        startDestination = NavRoutes.HOME,
-                        enterTransition = {
-                            slideInHorizontally(
+                    NavDisplay(
+                        backStack = backStack,
+                        modifier = Modifier.fillMaxSize(),
+                        onBack = { navigator.pop() },
+                        // SaveableStateHolder keeps rememberSaveable state per destination across
+                        // navigation, the ViewModelStore decorator scopes ViewModels (and their
+                        // SavedStateHandle) to a single entry and clears them when it is popped.
+                        entryDecorators = listOf(
+                            rememberSaveableStateHolderNavEntryDecorator(),
+                            rememberViewModelStoreNavEntryDecorator(),
+                        ),
+                        transitionSpec = {
+                            (slideInHorizontally(
                                 initialOffsetX = { it },
                                 animationSpec = tween(300)
-                            ) + fadeIn(animationSpec = tween(300))
+                            ) + fadeIn(animationSpec = tween(300))) togetherWith
+                                (slideOutHorizontally(
+                                    targetOffsetX = { -it },
+                                    animationSpec = tween(300)
+                                ) + fadeOut(animationSpec = tween(300)))
                         },
-                        exitTransition = {
-                            slideOutHorizontally(
-                                targetOffsetX = { -it },
-                                animationSpec = tween(300)
-                            ) + fadeOut(animationSpec = tween(300))
-                        },
-                        popEnterTransition = {
-                            slideInHorizontally(
+                        popTransitionSpec = {
+                            (slideInHorizontally(
                                 initialOffsetX = { -it },
                                 animationSpec = tween(300)
-                            ) + fadeIn(animationSpec = tween(300))
+                            ) + fadeIn(animationSpec = tween(300))) togetherWith
+                                (slideOutHorizontally(
+                                    targetOffsetX = { it },
+                                    animationSpec = tween(300)
+                                ) + fadeOut(animationSpec = tween(300)))
                         },
-                        popExitTransition = {
-                            slideOutHorizontally(
-                                targetOffsetX = { it },
+                        // Drives the predictive back gesture with the same visuals as a normal pop
+                        predictivePopTransitionSpec = {
+                            (slideInHorizontally(
+                                initialOffsetX = { -it },
                                 animationSpec = tween(300)
-                            ) + fadeOut(animationSpec = tween(300))
-                        }
-                    ) {
-                        composable(NavRoutes.HOME) {
-                            HomeScreen()
-                        }
-                        composable(NavRoutes.ANSWERS) {
-                            AnswersScreen()
-                        }
-                        composable(NavRoutes.SETTINGS) {
-                            SettingsScreen(
-                                onThemeUpdated = updateThemeMode,
-                                onLanguageUpdated = updateLanguageCode,
-                                currentLanguageCode = languageController.languageCode,
-                                onCheckUpdate = {
-                                    val coroutineScope = kotlinx.coroutines.CoroutineScope(Dispatchers.Main)
-                                    coroutineScope.launch {
-                                        checkForUpdates()
+                            ) + fadeIn(animationSpec = tween(300))) togetherWith
+                                (slideOutHorizontally(
+                                    targetOffsetX = { it },
+                                    animationSpec = tween(300)
+                                ) + fadeOut(animationSpec = tween(300)))
+                        },
+                        entryProvider = entryProvider {
+                            entry<HomeKey> {
+                                HomeScreen()
+                            }
+                            entry<AnswersKey> {
+                                AnswersScreen()
+                            }
+                            entry<SettingsKey> {
+                                SettingsScreen(
+                                    onThemeUpdated = updateThemeMode,
+                                    onLanguageUpdated = updateLanguageCode,
+                                    currentLanguageCode = languageController.languageCode,
+                                    onCheckUpdate = {
+                                        val coroutineScope = kotlinx.coroutines.CoroutineScope(Dispatchers.Main)
+                                        coroutineScope.launch {
+                                            checkForUpdates()
+                                        }
+                                    },
+                                    isCheckingUpdate = isCheckingUpdate,
+                                    onNavigateToLicenses = {
+                                        navigator.push(LicensesKey)
                                     }
-                                },
-                                isCheckingUpdate = isCheckingUpdate,
-                                onNavigateToLicenses = {
-                                    navController.navigate(NavRoutes.LICENSES)
-                                }
-                            )
+                                )
+                            }
+                            entry<LicensesKey> {
+                                LicensesScreen(
+                                    onBack = {
+                                        navigator.pop()
+                                    }
+                                )
+                            }
                         }
-                        composable(NavRoutes.LICENSES) {
-                            LicensesScreen(
-                                onBack = {
-                                    navController.popBackStack()
-                                }
-                            )
-                        }
-                    }
+                    )
                 }
             }
             

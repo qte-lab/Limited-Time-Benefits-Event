@@ -30,8 +30,21 @@
 -keep class top.yukonga.miuix.** { *; }
 -dontwarn top.yukonga.miuix.**
 
--keep class androidx.navigation.** { *; }
--keep class androidx.compose.navigation.** { *; }
+-keep class androidx.navigation3.** { *; }
+-dontwarn androidx.navigation3.**
+
+# Navigation 3 persists the back stack by writing the fully qualified class name of every NavKey and
+# restores it with Class.forName(name).kotlin.serializer(). The key classes and their generated
+# kotlinx.serialization serializers must therefore survive shrinking and obfuscation.
+-keep class * implements androidx.navigation3.runtime.NavKey { *; }
+-keep,includedescriptorclasses class com.chronie.gift.ui.navigation.**$$serializer { *; }
+-keepclassmembers class com.chronie.gift.ui.navigation.** {
+    *** Companion;
+    public static ** INSTANCE;
+}
+-keepclasseswithmembers class com.chronie.gift.ui.navigation.** {
+    kotlinx.serialization.KSerializer serializer(...);
+}
 
 -keepattributes *Annotation*
 -keepattributes Signature

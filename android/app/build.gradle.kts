@@ -91,8 +91,11 @@ dependencies {
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.ui.graphics)
     implementation(libs.androidx.compose.ui.tooling.preview)
-    // Navigation dependencies
-    implementation(libs.androidx.navigation.compose)
+    // Navigation 3 dependencies
+    implementation(libs.androidx.navigation3.runtime)
+    implementation(libs.androidx.navigation3.ui)
+    // Scopes ViewModels (and their SavedStateHandle) to a single NavEntry
+    implementation(libs.androidx.lifecycle.viewmodel.navigation3)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
