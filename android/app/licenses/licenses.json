@@ -1,0 +1,130 @@
+{
+    "libraries": [
+        {
+            "name": "AndroidX Core KTX",
+            "version": "1.19.0",
+            "license": "Apache License 2.0",
+            "url": "https://developer.android.com/jetpack/androidx/releases/core",
+            "licenseTextFile": "apache-2.0.txt"
+        },
+        {
+            "name": "AndroidX Lifecycle Runtime KTX",
+            "version": "2.11.0",
+            "license": "Apache License 2.0",
+            "url": "https://developer.android.com/jetpack/androidx/releases/lifecycle",
+            "licenseTextFile": "apache-2.0.txt"
+        },
+        {
+            "name": "AndroidX Activity Compose",
+            "version": "1.13.0",
+            "license": "Apache License 2.0",
+            "url": "https://developer.android.com/jetpack/androidx/releases/activity",
+            "licenseTextFile": "apache-2.0.txt"
+        },
+        {
+            "name": "AndroidX Compose BOM",
+            "version": "2026.06.01",
+            "license": "Apache License 2.0",
+            "url": "https://developer.android.com/jetpack/androidx/releases/compose",
+            "licenseTextFile": "apache-2.0.txt"
+        },
+        {
+            "name": "AndroidX Navigation 3",
+            "version": "1.1.5",
+            "license": "Apache License 2.0",
+            "url": "https://developer.android.com/jetpack/androidx/releases/navigation3",
+            "licenseTextFile": "apache-2.0.txt"
+        },
+        {
+            "name": "Ktor Client",
+            "version": "3.5.2",
+            "license": "Apache License 2.0",
+            "url": "https://github.com/ktorio/ktor",
+            "licenseTextFile": "apache-2.0.txt"
+        },
+        {
+            "name": "Ktor Client Android",
+            "version": "3.5.2",
+            "license": "Apache License 2.0",
+            "url": "https://github.com/ktorio/ktor",
+            "licenseTextFile": "apache-2.0.txt"
+        },
+        {
+            "name": "Ktor Client Content Negotiation",
+            "version": "3.5.2",
+            "license": "Apache License 2.0",
+            "url": "https://github.com/ktorio/ktor",
+            "licenseTextFile": "apache-2.0.txt"
+        },
+        {
+            "name": "Ktor Serialization Kotlinx JSON",
+            "version": "3.5.2",
+            "license": "Apache License 2.0",
+            "url": "https://github.com/ktorio/ktor",
+            "licenseTextFile": "apache-2.0.txt"
+        },
+        {
+            "name": "Kotlinx Serialization JSON",
+            "version": "1.8.0",
+            "license": "Apache License 2.0",
+            "url": "https://github.com/Kotlin/kotlinx.serialization",
+            "licenseTextFile": "apache-2.0.txt"
+        },
+        {
+            "name": "Coil",
+            "version": "3.5.0",
+            "license": "Apache License 2.0",
+            "url": "https://github.com/coil-kt/coil",
+            "licenseTextFile": "apache-2.0.txt"
+        },
+        {
+            "name": "Coil Network OkHttp",
+            "version": "3.5.0",
+            "license": "Apache License 2.0",
+            "url": "https://github.com/coil-kt/coil",
+            "licenseTextFile": "apache-2.0.txt"
+        },
+        {
+            "name": "Miuix",
+            "version": "0.9.3",
+            "license": "Apache License 2.0",
+            "url": "https://github.com/compose-miuix-ui/miuix",
+            "licenseTextFile": "apache-2.0.txt"
+        },
+        {
+            "name": "Miuix Icons",
+            "version": "0.9.3",
+            "license": "Apache License 2.0",
+            "url": "https://github.com/compose-miuix-ui/miuix",
+            "licenseTextFile": "apache-2.0.txt"
+        },
+        {
+            "name": "JUnit",
+            "version": "4.13.2",
+            "license": "Eclipse Public License 1.0",
+            "url": "https://junit.org/junit4/",
+            "licenseTextFile": "eclipse-public-license-1-0.txt"
+        },
+        {
+            "name": "AndroidX Test Ext JUnit",
+            "version": "1.3.0",
+            "license": "Apache License 2.0",
+            "url": "https://developer.android.com/jetpack/androidx/releases/test",
+            "licenseTextFile": "apache-2.0.txt"
+        },
+        {
+            "name": "Espresso Core",
+            "version": "3.7.0",
+            "license": "Apache License 2.0",
+            "url": "https://developer.android.com/training/testing/espresso",
+            "licenseTextFile": "apache-2.0.txt"
+        },
+        {
+            "name": "Latin Modern Math Font",
+            "version": "1.0",
+            "license": "GUST Font License",
+            "url": "https://www.gust.org.pl/projects/e-foundry/lm-math",
+            "licenseTextFile": "gust-font-license.txt"
+        }
+    ]
+}
