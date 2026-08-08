@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.shape.CircleShape
@@ -192,11 +193,16 @@ fun RowScope.FloatingBottomBarItem(
     val onTabMeasured = LocalFloatingBottomBarOnTabMeasured.current
 
 // Each item wraps its content width but fills the Row's height so that the
-    // CircleShape clip doesn't shave off the bottom of the text.
+    // CircleShape clip doesn't shave off the bottom of the text. A minimum
+    // width keeps the options from feeling cramped, even with short labels.
+    // NOTE: do not add padding inside the item — the indicator's measurement
+    // pipeline derives tab centers and pill width from the reported item
+    // width, and inner padding desyncs it from the text position.
     Column(
     modifier
         .fillMaxHeight()
         .wrapContentWidth()
+        .widthIn(min = 60.dp)
         .clip(CircleShape)
         .clickable(
             interactionSource = null,
