@@ -37,10 +37,8 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme
 @Composable
 fun SettingsScreen(
     onThemeUpdated: (String) -> Unit = {},
-    onLanguageUpdated: (String?) -> Unit = {},
     onCheckUpdate: () -> Unit = {},
     isCheckingUpdate: Boolean = false,
-    currentLanguageCode: String? = null,
     onNavigateToLicenses: () -> Unit = {}
 ) {
     val context = LocalContext.current
@@ -48,26 +46,6 @@ fun SettingsScreen(
     val themeManager = remember { ThemeManager(context) }
 
     val scrollBehavior = MiuixScrollBehavior()
-    
-    val languageOptions = listOf(
-        stringResource(id = R.string.language_follow_system),
-        stringResource(id = R.string.language_en),
-        stringResource(id = R.string.language_ja),
-        stringResource(id = R.string.language_zh_cn),
-        stringResource(id = R.string.language_zh_tw),
-    )
-    
-    val languageCodes = listOf(null, "en", "ja", "zh-CN", "zh-TW")
-    
-    val initialLanguageIndex = if (currentLanguageCode == null) {
-        0
-    } else {
-        languageCodes.indexOf(currentLanguageCode).takeIf { it >= 0 } ?: 0
-    }
-    
-    var selectedLanguageIndex by remember {
-        mutableIntStateOf(initialLanguageIndex)
-    }
     
     val themeOptions = listOf(
         stringResource(id = R.string.theme_auto),
@@ -121,17 +99,6 @@ fun SettingsScreen(
                 Card(
                     modifier = Modifier.padding(bottom = 16.dp)
                 ) {
-                    OverlayDropdownPreference(
-                        title = stringResource(id = R.string.language_settings),
-                        items = languageOptions,
-                        selectedIndex = selectedLanguageIndex,
-                        onSelectedIndexChange = { index ->
-                            selectedLanguageIndex = index
-                            val languageCode = languageCodes[index]
-                            onLanguageUpdated(languageCode)
-                            Toast.makeText(context, context.getString(R.string.language_switched, languageOptions[index]), Toast.LENGTH_SHORT).show()
-                        }
-                    )
                     OverlayDropdownPreference(
                         title = stringResource(id = R.string.theme_settings),
                         items = themeOptions,

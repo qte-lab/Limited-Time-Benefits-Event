@@ -46,7 +46,6 @@ import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
-import com.chronie.gift.data.LanguageManager
 import com.chronie.gift.data.ThemeManager
 import com.chronie.gift.data.TabManager
 import com.chronie.gift.data.UpdateChecker
@@ -73,7 +72,6 @@ import com.chronie.gift.ui.screens.SettingsScreen
 import top.yukonga.miuix.kmp.theme.ColorSchemeMode
 import top.yukonga.miuix.kmp.theme.ThemeController
 import com.chronie.gift.ui.theme.GiftTheme
-import com.chronie.gift.ui.theme.LanguageController
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -130,14 +128,6 @@ fun GiftApp() {
         mutableStateOf(initialThemeMode)
     }
     
-    // Language management
-    val languageManager = remember { LanguageManager(context) }
-    val savedLanguage = languageManager.getSavedLanguage()
-    
-    val languageController = remember {
-        LanguageController(savedLanguage)
-    }
-    
     // Update theme mode callback
     val updateThemeMode = { newThemeMode: String ->
         val colorSchemeMode = when (newThemeMode) {
@@ -147,17 +137,6 @@ fun GiftApp() {
         }
         currentThemeMode = colorSchemeMode
         themeManager.saveTheme(newThemeMode)
-    }
-    
-    // Update language callback
-    val updateLanguageCode = { newLanguageCode: String? ->
-        languageController.languageCode = newLanguageCode
-        if (newLanguageCode == null) {
-            languageManager.clearLanguage()
-        } else {
-            languageManager.saveLanguage(newLanguageCode)
-        }
-        languageManager.applyLanguage(newLanguageCode)
     }
     
     // Update check related states
@@ -243,7 +222,7 @@ fun GiftApp() {
     val themeController = remember(currentThemeMode) {
         ThemeController(currentThemeMode)
     }
-    GiftTheme(controller = themeController, languageController = languageController) {
+    GiftTheme(controller = themeController) {
         val backdrop = rememberLayerBackdrop()
 
         BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
@@ -483,8 +462,6 @@ fun GiftApp() {
                                 entry<SettingsKey> {
                                     SettingsScreen(
                                         onThemeUpdated = updateThemeMode,
-                                        onLanguageUpdated = updateLanguageCode,
-                                        currentLanguageCode = languageController.languageCode,
                                         onCheckUpdate = {
                                             val coroutineScope = kotlinx.coroutines.CoroutineScope(Dispatchers.Main)
                                             coroutineScope.launch {

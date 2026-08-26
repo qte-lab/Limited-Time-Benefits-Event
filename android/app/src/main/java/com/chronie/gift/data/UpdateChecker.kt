@@ -38,10 +38,9 @@ class UpdateChecker {
             if (response.success && response.versionName != null) {
                 val latestVersion = response.versionName
                 if (isNewVersionAvailable(currentVersion, latestVersion)) {
-                    val languageCode = getCurrentLanguageCode()
-                    val changelogContent = response.changelog?.get(languageCode) 
-                        ?: response.changelog?.get("zh-cn") 
-                        ?: response.changelog?.get("en") 
+                    // App is single-language (Chinese); pick the matching changelog, fall back to English.
+                    val changelogContent = response.changelog?.get("zh-cn")
+                        ?: response.changelog?.get("en")
                         ?: ""
                     
                     return UpdateInfo(
@@ -57,19 +56,6 @@ class UpdateChecker {
         } catch (e: Exception) {
             e.printStackTrace()
             null
-        }
-    }
-
-    private fun getCurrentLanguageCode(): String {
-        val locale = java.util.Locale.getDefault()
-        val language = locale.language
-        val country = locale.country
-        
-        return when (language) {
-            "zh" if country == "CN" -> "zh-cn"
-            "zh" if country == "TW" -> "zh-tw"
-            "ja" -> "ja"
-            else -> "en"
         }
     }
 

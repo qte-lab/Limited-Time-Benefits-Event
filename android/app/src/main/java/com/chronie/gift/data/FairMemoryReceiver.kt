@@ -20,8 +20,8 @@ import coil3.SingletonImageLoader
  * Listens for TRIM (memory warning) and KILL (exception kill) broadcasts sent by the system:
  * - TRIM: release memory in time (clear Coil memory cache, etc.).
  * - KILL: save on-site data and then reply to the system. All persistent state of this app
- *   (current tab, theme, language) is already written to SharedPreferences in real time by
- *   TabManager / ThemeManager / LanguageManager, and is automatically restored by
+ *   (current tab, theme) is already written to SharedPreferences in real time by
+ *   TabManager / ThemeManager, and is automatically restored by
  *   MainActivity / GiftApp on the next launch. Therefore KILL only needs to clear the
  *   in-memory cache.
  *
@@ -208,8 +208,8 @@ class FairMemoryReceiver private constructor() : IBinder.DeathRecipient {
 
     /**
      * Handle exception kill: all persistent state of this app is saved to SharedPreferences
-     * in real time (TabManager/ThemeManager/LanguageManager). On the next launch MainActivity
-     * and GiftApp automatically restore the last tab/theme/language, so here we only need to
+     * in real time (TabManager/ThemeManager). On the next launch MainActivity
+     * and GiftApp automatically restore the last tab/theme, so here we only need to
      * clear the in-memory cache and reply.
      */
     private fun handleKill(notifyType: Int) {
