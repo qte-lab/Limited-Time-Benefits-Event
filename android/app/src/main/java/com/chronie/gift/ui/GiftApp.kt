@@ -64,8 +64,8 @@ import com.chronie.gift.ui.navigation.TAB_KEYS
 import com.chronie.gift.ui.navigation.TabNavKey
 import com.chronie.gift.ui.navigation.rememberGiftNavigator
 import com.chronie.gift.ui.navigation.tabKeyOf
-import com.chronie.gift.ui.screens.AnswersScreen
-import com.chronie.gift.ui.screens.HomeScreen
+import com.chronie.gift.ui.screens.AnswerKeysScreen
+import com.chronie.gift.ui.screens.QuizScreen
 import com.chronie.gift.R
 import com.chronie.gift.ui.screens.LicensesScreen
 import com.chronie.gift.ui.screens.SettingsScreen
@@ -454,10 +454,10 @@ fun GiftApp() {
                             },
                             entryProvider = entryProvider {
                                 entry<HomeKey> {
-                                    HomeScreen()
+                                    QuizScreen()
                                 }
                                 entry<AnswersKey> {
-                                    AnswersScreen()
+                                    AnswerKeysScreen()
                                 }
                                 entry<SettingsKey> {
                                     SettingsScreen(

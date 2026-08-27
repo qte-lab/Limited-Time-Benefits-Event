@@ -54,7 +54,7 @@ data class MarkdownContent(
     val content: String
 )
 
-object ApiClient {
+object MarkdownApiClient {
     private const val MAX_CONTENT_LENGTH = 500000
     
     val client = HttpClient(Android) {
@@ -278,7 +278,7 @@ fun ContentArea(
 }
 
 @Composable
-fun AnswersScreen() {
+fun AnswerKeysScreen() {
     Scaffold(
         topBar = {
             SmallTopAppBar(
@@ -315,7 +315,7 @@ fun MainContent(paddingValues: PaddingValues) {
         setErrorMessage(null)
         try {
             val files = withContext(Dispatchers.IO) {
-                ApiClient.fetchMarkdownFiles(baseUrl)
+                MarkdownApiClient.fetchMarkdownFiles(baseUrl)
             }
             setMarkdownFiles(files)
             if (files.isNotEmpty()) {
@@ -339,7 +339,7 @@ fun MainContent(paddingValues: PaddingValues) {
             setErrorMessage(null)
             try {
                 val content = withContext(Dispatchers.IO) {
-                    ApiClient.fetchMarkdownContent(baseUrl, selectedFile)
+                    MarkdownApiClient.fetchMarkdownContent(baseUrl, selectedFile)
                 }
                 setMarkdownContent(content)
             } catch (e: Exception) {

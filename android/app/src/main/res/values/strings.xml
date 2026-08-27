@@ -57,4 +57,27 @@
     <string name="back">返回</string>
     <string name="no_browser_found">未找到浏览器</string>
     <string name="open_link_failed">打开链接失败</string>
+
+    <!-- Quiz / activity screen -->
+    <string name="quiz_title">限时答题领币</string>
+    <string name="quiz_auth_required">需要授权金猪币账号</string>
+    <string name="quiz_auth_desc">答题奖励以金猪币（GPC）发放。请先授权你的金猪币账号，授权完成后将自动返回并发放奖励。</string>
+    <string name="quiz_authorize">授权金猪币账号</string>
+    <string name="quiz_authorizing">正在等待金猪币授权…\n请在浏览器中登录并点击「授权」</string>
+    <string name="quiz_auth_retry">重新打开授权页</string>
+    <string name="quiz_submit">提交并领取奖励</string>
+    <string name="quiz_loading">题目加载中…</string>
+    <string name="quiz_retry">重试</string>
+    <string name="quiz_reward">本题 +%1$d GPC</string>
+    <string name="quiz_correct">答对 +%1$d GPC</string>
+    <string name="quiz_wrong">答错</string>
+    <string name="quiz_claimed">已领取</string>
+    <string name="quiz_limited">已达今日上限</string>
+    <string name="quiz_result_total">本次共获得 %1$d GPC</string>
+    <string name="quiz_balance">当前余额 %1$d GPC</string>
+    <string name="quiz_daily">今日已领 %1$d / %2$d</string>
+    <string name="quiz_opt_true">正确</string>
+    <string name="quiz_opt_false">错误</string>
+    <string name="quiz_already_submitted">您已提交过问卷，无法重复提交</string>
+    <string name="quiz_completed">您已完成本期答题</string>
 </resources>
