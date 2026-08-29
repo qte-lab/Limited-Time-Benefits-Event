@@ -10,9 +10,11 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.*
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
@@ -39,7 +41,9 @@ import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.SmallTopAppBar
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.icon.MiuixIcons
+import top.yukonga.miuix.kmp.icon.extended.Lock
 import top.yukonga.miuix.kmp.icon.extended.Ok
+import top.yukonga.miuix.kmp.icon.extended.Send
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.utils.PressFeedbackType
 
@@ -221,7 +225,7 @@ private fun AuthorizingView(onRetry: () -> Unit, modifier: Modifier = Modifier) 
 }
 
 @Composable
-private fun PrimaryButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier, enabled: Boolean = true) {
+private fun PrimaryButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier, enabled: Boolean = true, icon: ImageVector? = null) {
     Card(
         modifier = modifier.fillMaxWidth(),
         pressFeedbackType = PressFeedbackType.Sink,
@@ -235,12 +239,26 @@ private fun PrimaryButton(text: String, onClick: () -> Unit, modifier: Modifier 
                 .padding(14.dp),
             contentAlignment = Alignment.Center
         ) {
-            Text(
-                text = text,
-                color = MiuixTheme.colorScheme.onPrimary,
-                fontWeight = FontWeight.Bold,
-                style = MiuixTheme.textStyles.body2
-            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center
+            ) {
+                if (icon != null) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        tint = MiuixTheme.colorScheme.onPrimary,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(Modifier.width(8.dp))
+                }
+                Text(
+                    text = text,
+                    color = MiuixTheme.colorScheme.onPrimary,
+                    fontWeight = FontWeight.Bold,
+                    style = MiuixTheme.textStyles.body2
+                )
+            }
         }
     }
 }
@@ -252,6 +270,7 @@ private fun PrimaryButton(text: String, onClick: () -> Unit, modifier: Modifier 
 @Composable
 private fun QuizView(token: String, paddingValues: PaddingValues) {
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
     var questions by remember { mutableStateOf<List<QuestionPublic>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
     var error by remember { mutableStateOf<String?>(null) }
@@ -270,7 +289,32 @@ private fun QuizView(token: String, paddingValues: PaddingValues) {
             isLoading = true
             error = null
             try {
-                questions = QuizApi.fetchQuestions(QUIZ_BASE_URL)
+                val qs = QuizApi.fetchQuestions(QUIZ_BASE_URL)
+                questions = qs
+                val fp = QuizPrefs.fingerprint(qs)
+                val saved = QuizPrefs.load(context)
+                if (saved.fp == fp) {
+                    // Same quiz version: restore the user's previous answers and
+                    // any completion recorded earlier (so killing the app loses
+                    // nothing).
+                    singleSel.putAll(saved.single)
+                    multiSel.putAll(saved.multi)
+                    boolSel.putAll(saved.bool)
+                    if (saved.completed) {
+                        alreadySubmitted = true
+                        result = SubmitResponse(
+                            success = true,
+                            totalAwarded = saved.totalAwarded,
+                            balance = saved.balance,
+                            dailyUsed = saved.dailyUsed,
+                            dailyLimit = saved.dailyLimit
+                        )
+                    }
+                } else if (saved.fp.isNotEmpty()) {
+                    // A different quiz was deployed: drop stale answers but keep
+                    // the completed flag (the server is authoritative anyway).
+                    QuizPrefs.resetFor(context, fp, saved.completed)
+                }
             } catch (e: Exception) {
                 error = e.message
             } finally {
@@ -290,6 +334,22 @@ private fun QuizView(token: String, paddingValues: PaddingValues) {
     }
 
     LaunchedEffect(Unit) { load() }
+
+    // Persist answer selections as the user fills them in, so progress survives
+    // the app being killed or backgrounded.
+    LaunchedEffect(Unit) {
+        snapshotFlow {
+            QuizPrefs.fingerprint(questions) to Triple(
+                singleSel.toMap(),
+                multiSel.toMap(),
+                boolSel.toMap()
+            )
+        }.collect { (fp, triple) ->
+            if (fp.isNotEmpty()) {
+                QuizPrefs.saveSelections(context, fp, triple.first, triple.second, triple.third)
+            }
+        }
+    }
 
     val buildAnswers: () -> List<AnswerSubmission> = {
         val list = mutableListOf<AnswerSubmission>()
@@ -324,7 +384,7 @@ private fun QuizView(token: String, paddingValues: PaddingValues) {
                     contentPadding = PaddingValues(start = 12.dp, end = 12.dp, bottom = 96.dp)
                 ) {
                     if (completed) {
-                        item { CompletedBanner(result) }
+                        item { CompletedHeader(result = result) }
                     }
                     items(questions) { q ->
                         QuestionCard(
@@ -338,6 +398,7 @@ private fun QuizView(token: String, paddingValues: PaddingValues) {
                     item {
                         PrimaryButton(
                             text = stringResource(R.string.quiz_submit),
+                            icon = MiuixIcons.Send,
                             enabled = !submitting && !completed,
                             onClick = {
                                 scope.launch {
@@ -347,10 +408,12 @@ private fun QuizView(token: String, paddingValues: PaddingValues) {
                                         if (resp.alreadySubmitted) {
                                             // Rejected re-submit: lock the screen and explain.
                                             alreadySubmitted = true
+                                            QuizPrefs.saveCompleted(context, QuizPrefs.fingerprint(questions), null)
                                         } else if (resp.success) {
                                             // First successful submit: mark done and show the reward.
                                             alreadySubmitted = true
                                             result = resp
+                                            QuizPrefs.saveCompleted(context, QuizPrefs.fingerprint(questions), resp)
                                         } else {
                                             error = resp.message
                                         }
@@ -390,42 +453,60 @@ private fun CenterMessage(text: String, onRetry: (() -> Unit)? = null) {
     }
 }
 
+/**
+ * Full-width "已完成本期答题" header. Replaces the previous compact card so the
+ * completion state reads as a prominent page section rather than an inline card.
+ */
 @Composable
-private fun CompletedBanner(result: SubmitResponse?) {
-    Card(
-        modifier = Modifier.fillMaxWidth().padding(12.dp)
+private fun CompletedHeader(result: SubmitResponse?) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(MiuixTheme.colorScheme.primary.copy(alpha = 0.10f))
+            .padding(20.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Column(Modifier.padding(16.dp)) {
+        Icon(
+            imageVector = if (result != null) MiuixIcons.Ok else MiuixIcons.Lock,
+            contentDescription = null,
+            tint = MiuixTheme.colorScheme.primary,
+            modifier = Modifier.size(48.dp)
+        )
+        Spacer(Modifier.height(10.dp))
+        Text(
+            text = stringResource(R.string.quiz_completed),
+            style = MiuixTheme.textStyles.headline1,
+            fontWeight = FontWeight.Bold,
+            color = MiuixTheme.colorScheme.primary,
+            textAlign = TextAlign.Center
+        )
+        Spacer(Modifier.height(8.dp))
+        if (result != null) {
             Text(
-                text = stringResource(R.string.quiz_completed),
-                style = MiuixTheme.textStyles.headline1,
-                fontWeight = FontWeight.Bold,
-                color = MiuixTheme.colorScheme.primary
+                stringResource(R.string.quiz_result_total, result.totalAwarded),
+                style = MiuixTheme.textStyles.body2,
+                color = MiuixTheme.colorScheme.onSurface,
+                textAlign = TextAlign.Center
             )
-            Spacer(Modifier.height(6.dp))
-            if (result != null) {
-                Text(
-                    stringResource(R.string.quiz_result_total, result.totalAwarded),
-                    style = MiuixTheme.textStyles.body2,
-                    color = MiuixTheme.colorScheme.onSurface
-                )
-                Text(
-                    stringResource(R.string.quiz_balance, result.balance),
-                    style = MiuixTheme.textStyles.body2,
-                    color = MiuixTheme.colorScheme.onSurface
-                )
-                Text(
-                    stringResource(R.string.quiz_daily, result.dailyUsed, result.dailyLimit),
-                    style = MiuixTheme.textStyles.body2,
-                    color = MiuixTheme.colorScheme.onSurface
-                )
-            } else {
-                Text(
-                    stringResource(R.string.quiz_already_submitted),
-                    style = MiuixTheme.textStyles.body2,
-                    color = MiuixTheme.colorScheme.onSurface
-                )
-            }
+            Text(
+                stringResource(R.string.quiz_balance, result.balance),
+                style = MiuixTheme.textStyles.body2,
+                color = MiuixTheme.colorScheme.onSurface,
+                textAlign = TextAlign.Center
+            )
+            Text(
+                stringResource(R.string.quiz_daily, result.dailyUsed, result.dailyLimit),
+                style = MiuixTheme.textStyles.body2,
+                color = MiuixTheme.colorScheme.onSurface,
+                textAlign = TextAlign.Center
+            )
+        } else {
+            Text(
+                stringResource(R.string.quiz_already_submitted),
+                style = MiuixTheme.textStyles.body2,
+                color = MiuixTheme.colorScheme.onSurface,
+                textAlign = TextAlign.Center
+            )
         }
     }
 }
