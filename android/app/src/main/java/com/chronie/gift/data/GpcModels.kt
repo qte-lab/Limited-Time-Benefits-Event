@@ -70,17 +70,44 @@ data class QuizResultItem(
     val limited: Boolean? = null
 )
 
-/** Flat body of POST /api/quiz/submit (success + results + balance). */
+/** Full, server-side record of one user's submission for one period. */
+@Serializable
+data class SubmissionData(
+    val submittedAt: Long = 0,
+    val totalAwarded: Int = 0,
+    val answers: List<AnswerSubmission> = emptyList(),
+    val results: List<QuizResultItem> = emptyList()
+)
+
+/** Flat body of GET /api/quiz/questions (period + questions, answers stripped). */
+@Serializable
+data class QuizQuestionsResponse(
+    val success: Boolean = false,
+    val period: String = "",
+    val data: List<QuestionPublic>? = null,
+    val message: String? = null
+)
+
+/** Inner data of GET /api/quiz/status (period + completion + stored submission). */
+@Serializable
+data class QuizStatusData(
+    val success: Boolean = false,
+    val period: String = "",
+    val submitted: Boolean = false,
+    val submission: SubmissionData? = null
+)
+
+/** Flat body of POST /api/quiz/submit (success + results + period). */
 @Serializable
 data class SubmitResponse(
     val success: Boolean = false,
     val results: List<QuizResultItem>? = null,
     val totalAwarded: Int = 0,
-    val balance: Int = 0,
-    val dailyUsed: Int = 0,
-    val dailyLimit: Int = 0,
-    /** True when the user already submitted the quiz before; the submit was rejected. */
+    val period: String = "",
+    /** True when the user already submitted this period; the submit was rejected. */
     val alreadySubmitted: Boolean = false,
+    /** Present on an alreadySubmitted response so the client can redraw grading. */
+    val submission: SubmissionData? = null,
     val message: String? = null
 )
 

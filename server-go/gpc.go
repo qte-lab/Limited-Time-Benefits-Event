@@ -23,7 +23,6 @@ type GpcConfig struct {
 	OAuthClientName string `json:"oauthClientName"`
 	OAuthScope      string `json:"oauthScope"`
 	RedirectURI     string `json:"redirectUri"`
-	DailyLimit      int    `json:"dailyLimitPerUser"`
 }
 
 // OAuthClientCreds is the client id/secret registered with GPC. The secret is
@@ -229,19 +228,4 @@ func (g *gpcClient) VerifyToken(token string) (string, error) {
 		return "", err
 	}
 	return d.ID, nil
-}
-
-// GetBalance returns the user's GPC balance for the results screen.
-func (g *gpcClient) GetBalance(token string) (int, error) {
-	r, err := g.doJSON(http.MethodGet, "/auth/me", nil, token)
-	if err != nil {
-		return 0, err
-	}
-	var d struct {
-		Balance int `json:"balance"`
-	}
-	if err := json.Unmarshal(r.Data, &d); err != nil {
-		return 0, err
-	}
-	return d.Balance, nil
 }

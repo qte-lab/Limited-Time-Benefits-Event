@@ -72,12 +72,11 @@
     <string name="quiz_correct">答对 +%1$d GPC</string>
     <string name="quiz_wrong">答错</string>
     <string name="quiz_claimed">已领取</string>
-    <string name="quiz_limited">已达今日上限</string>
     <string name="quiz_result_total">本次共获得 %1$d GPC</string>
-    <string name="quiz_balance">当前余额 %1$d GPC</string>
-    <string name="quiz_daily">今日已领 %1$d / %2$d</string>
     <string name="quiz_opt_true">正确</string>
     <string name="quiz_opt_false">错误</string>
     <string name="quiz_already_submitted">您已提交过问卷，无法重复提交</string>
     <string name="quiz_completed">您已完成本期答题</string>
+    <string name="quiz_period">本期：%1$s</string>
+    <string name="quiz_draft_saved">您的作答已自动保存，可随时继续</string>
 </resources>

@@ -272,48 +272,74 @@ private fun QuizView(token: String, paddingValues: PaddingValues) {
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     var questions by remember { mutableStateOf<List<QuestionPublic>>(emptyList()) }
+    var period by remember { mutableStateOf("") }
     var isLoading by remember { mutableStateOf(true) }
     var error by remember { mutableStateOf<String?>(null) }
     var submitting by remember { mutableStateOf(false) }
     var result by remember { mutableStateOf<SubmitResponse?>(null) }
-    // One-time guard: once the user has submitted the quiz (server-side), the
-    // submit button is disabled and a "已提交" banner is shown.
+    // Completion flag: true once this period has been submitted (server is
+    // authoritative; a locally cached completion is used only as an offline
+    // fallback).
     var alreadySubmitted by remember { mutableStateOf(false) }
 
     val singleSel = remember { mutableStateMapOf<String, Int>() }
     val multiSel = remember { mutableStateMapOf<String, List<Int>>() }
     val boolSel = remember { mutableStateMapOf<String, Boolean>() }
 
+    fun buildDisplayResult(
+        period: String,
+        results: List<QuizResultItem>?,
+        total: Int
+    ): SubmitResponse = SubmitResponse(
+        success = true,
+        period = period,
+        results = results,
+        totalAwarded = total
+    )
+
     fun load() {
         scope.launch {
             isLoading = true
             error = null
             try {
-                val qs = QuizApi.fetchQuestions(QUIZ_BASE_URL)
-                questions = qs
-                val fp = QuizPrefs.fingerprint(qs)
+                val qresp = QuizApi.fetchQuestions(QUIZ_BASE_URL)
+                questions = qresp.data ?: emptyList()
+                period = qresp.period
+                val fp = QuizPrefs.fingerprint(period, questions)
                 val saved = QuizPrefs.load(context)
-                if (saved.fp == fp) {
-                    // Same quiz version: restore the user's previous answers and
-                    // any completion recorded earlier (so killing the app loses
-                    // nothing).
+                if (saved.fp == fp && saved.period == period) {
+                    // Same period+quiz: restore the user's previous draft and any
+                    // completion recorded earlier (so killing the app loses nothing).
                     singleSel.putAll(saved.single)
                     multiSel.putAll(saved.multi)
                     boolSel.putAll(saved.bool)
-                    if (saved.completed) {
+                    if (saved.completed && saved.results != null) {
                         alreadySubmitted = true
-                        result = SubmitResponse(
-                            success = true,
-                            totalAwarded = saved.totalAwarded,
-                            balance = saved.balance,
-                            dailyUsed = saved.dailyUsed,
-                            dailyLimit = saved.dailyLimit
-                        )
+                        result = buildDisplayResult(period, saved.results, saved.totalAwarded)
                     }
                 } else if (saved.fp.isNotEmpty()) {
-                    // A different quiz was deployed: drop stale answers but keep
-                    // the completed flag (the server is authoritative anyway).
-                    QuizPrefs.resetFor(context, fp, saved.completed)
+                    // A different quiz/period was deployed: drop stale answers but
+                    // keep a clean slate for the new period.
+                    QuizPrefs.resetFor(context, period, fp, false)
+                }
+
+                // Server status is authoritative for completion: it also returns the
+                // stored submission so we can show the user's answers + grading
+                // immediately on open, without any submit click.
+                try {
+                    val st = QuizApi.getStatus(QUIZ_BASE_URL, token)
+                    if (st.period == period && st.submitted && st.submission != null) {
+                        applyServerAnswers(st.submission.answers, questions, singleSel, boolSel, multiSel)
+                        alreadySubmitted = true
+                        result = buildDisplayResult(period, st.submission.results, st.submission.totalAwarded)
+                        QuizPrefs.saveCompleted(context, period, fp, result, st.submission.answers)
+                    } else if (st.period == period) {
+                        // Server confirms this period is still open: allow answering.
+                        alreadySubmitted = false
+                        result = null
+                    }
+                } catch (_: Exception) {
+                    // Status unavailable (e.g. offline): keep the local fallback above.
                 }
             } catch (e: Exception) {
                 error = e.message
@@ -323,30 +349,20 @@ private fun QuizView(token: String, paddingValues: PaddingValues) {
         }
     }
 
-    // Reflect the server-side one-time flag across restarts.
-    LaunchedEffect(token) {
-        try {
-            alreadySubmitted = QuizApi.getStatus(QUIZ_BASE_URL, token)
-        } catch (_: Exception) {
-            // status unavailable (e.g. network) — leave button enabled; the
-            // server will still reject a duplicate submit.
-        }
-    }
-
     LaunchedEffect(Unit) { load() }
 
-    // Persist answer selections as the user fills them in, so progress survives
-    // the app being killed or backgrounded.
+    // Persist answer selections as the user fills them in (scoped to the current
+    // period), so progress survives the app being killed or backgrounded.
     LaunchedEffect(Unit) {
         snapshotFlow {
-            QuizPrefs.fingerprint(questions) to Triple(
+            QuizPrefs.fingerprint(period, questions) to Triple(
                 singleSel.toMap(),
                 multiSel.toMap(),
                 boolSel.toMap()
             )
         }.collect { (fp, triple) ->
-            if (fp.isNotEmpty()) {
-                QuizPrefs.saveSelections(context, fp, triple.first, triple.second, triple.third)
+            if (period.isNotEmpty() && fp.isNotEmpty()) {
+                QuizPrefs.saveSelections(context, period, fp, triple.first, triple.second, triple.third)
             }
         }
     }
@@ -384,7 +400,7 @@ private fun QuizView(token: String, paddingValues: PaddingValues) {
                     contentPadding = PaddingValues(start = 12.dp, end = 12.dp, bottom = 96.dp)
                 ) {
                     if (completed) {
-                        item { CompletedHeader(result = result) }
+                        item { CompletedHeader(period = period, result = result) }
                     }
                     items(questions) { q ->
                         QuestionCard(
@@ -396,6 +412,17 @@ private fun QuizView(token: String, paddingValues: PaddingValues) {
                         )
                     }
                     item {
+                        if (!completed && (singleSel.isNotEmpty() || boolSel.isNotEmpty() || multiSel.isNotEmpty())) {
+                            Text(
+                                text = stringResource(R.string.quiz_draft_saved),
+                                style = MiuixTheme.textStyles.body2,
+                                color = MiuixTheme.colorScheme.onSurface,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(bottom = 8.dp)
+                            )
+                        }
                         PrimaryButton(
                             text = stringResource(R.string.quiz_submit),
                             icon = MiuixIcons.Send,
@@ -406,14 +433,39 @@ private fun QuizView(token: String, paddingValues: PaddingValues) {
                                     try {
                                         val resp = QuizApi.submit(QUIZ_BASE_URL, token, buildAnswers())
                                         if (resp.alreadySubmitted) {
-                                            // Rejected re-submit: lock the screen and explain.
+                                            // Rejected re-submit: redraw the stored submission.
                                             alreadySubmitted = true
-                                            QuizPrefs.saveCompleted(context, QuizPrefs.fingerprint(questions), null)
+                                            val sub = resp.submission
+                                            if (sub != null) {
+                                                applyServerAnswers(sub.answers, questions, singleSel, boolSel, multiSel)
+                                                result = buildDisplayResult(period, sub.results, sub.totalAwarded)
+                                                QuizPrefs.saveCompleted(
+                                                    context,
+                                                    period,
+                                                    QuizPrefs.fingerprint(period, questions),
+                                                    result,
+                                                    sub.answers
+                                                )
+                                            } else {
+                                                QuizPrefs.saveCompleted(
+                                                    context,
+                                                    period,
+                                                    QuizPrefs.fingerprint(period, questions),
+                                                    null,
+                                                    null
+                                                )
+                                            }
                                         } else if (resp.success) {
                                             // First successful submit: mark done and show the reward.
                                             alreadySubmitted = true
                                             result = resp
-                                            QuizPrefs.saveCompleted(context, QuizPrefs.fingerprint(questions), resp)
+                                            QuizPrefs.saveCompleted(
+                                                context,
+                                                period,
+                                                QuizPrefs.fingerprint(period, questions),
+                                                resp,
+                                                buildAnswers()
+                                            )
                                         } else {
                                             error = resp.message
                                         }
@@ -427,6 +479,38 @@ private fun QuizView(token: String, paddingValues: PaddingValues) {
                         )
                     }
                 }
+            }
+        }
+    }
+}
+
+/**
+ * Re-fill the selection maps from a server-stored submission so the user's own
+ * answers are shown (and graded) when they reopen a completed period.
+ */
+private fun applyServerAnswers(
+    answers: List<AnswerSubmission>,
+    questions: List<QuestionPublic>,
+    singleSel: MutableMap<String, Int>,
+    boolSel: MutableMap<String, Boolean>,
+    multiSel: MutableMap<String, List<Int>>
+) {
+    val typeById = questions.associateBy { it.id }
+    for (a in answers) {
+        val type = typeById[a.id]?.type ?: continue
+        when (type) {
+            "bool" -> {
+                val v = (a.value as? JsonPrimitive)?.content?.toBooleanStrictOrNull()
+                if (v != null) boolSel[a.id] = v
+            }
+            "single" -> {
+                val v = (a.value as? JsonPrimitive)?.content?.toIntOrNull()
+                if (v != null) singleSel[a.id] = v
+            }
+            "multiple" -> {
+                val arr = a.value as? JsonArray ?: continue
+                val ids = arr.mapNotNull { (it as? JsonPrimitive)?.content?.toIntOrNull() }.sorted()
+                if (ids.isNotEmpty()) multiSel[a.id] = ids
             }
         }
     }
@@ -454,11 +538,12 @@ private fun CenterMessage(text: String, onRetry: (() -> Unit)? = null) {
 }
 
 /**
- * Full-width "已完成本期答题" header. Replaces the previous compact card so the
- * completion state reads as a prominent page section rather than an inline card.
+ * Full-width "已完成本期答题" header. Shows the period and the reward total.
+ * When the server returned the submission, the per-question answers and
+ * grading are rendered further down by [QuestionCard].
  */
 @Composable
-private fun CompletedHeader(result: SubmitResponse?) {
+private fun CompletedHeader(period: String, result: SubmitResponse?) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -480,22 +565,19 @@ private fun CompletedHeader(result: SubmitResponse?) {
             color = MiuixTheme.colorScheme.primary,
             textAlign = TextAlign.Center
         )
+        if (period.isNotEmpty()) {
+            Spacer(Modifier.height(4.dp))
+            Text(
+                stringResource(R.string.quiz_period, period),
+                style = MiuixTheme.textStyles.body2,
+                color = MiuixTheme.colorScheme.primary,
+                textAlign = TextAlign.Center
+            )
+        }
         Spacer(Modifier.height(8.dp))
         if (result != null) {
             Text(
                 stringResource(R.string.quiz_result_total, result.totalAwarded),
-                style = MiuixTheme.textStyles.body2,
-                color = MiuixTheme.colorScheme.onSurface,
-                textAlign = TextAlign.Center
-            )
-            Text(
-                stringResource(R.string.quiz_balance, result.balance),
-                style = MiuixTheme.textStyles.body2,
-                color = MiuixTheme.colorScheme.onSurface,
-                textAlign = TextAlign.Center
-            )
-            Text(
-                stringResource(R.string.quiz_daily, result.dailyUsed, result.dailyLimit),
                 style = MiuixTheme.textStyles.body2,
                 color = MiuixTheme.colorScheme.onSurface,
                 textAlign = TextAlign.Center
@@ -538,7 +620,6 @@ private fun QuestionCard(
                 Spacer(Modifier.weight(1f))
                 resultItem?.let {
                     val badge = when {
-                        it.limited == true -> stringResource(R.string.quiz_limited)
                         it.alreadyClaimed == true -> stringResource(R.string.quiz_claimed)
                         it.correct -> stringResource(R.string.quiz_correct, it.awarded)
                         else -> stringResource(R.string.quiz_wrong)
