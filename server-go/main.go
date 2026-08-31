@@ -62,7 +62,7 @@ func main() {
 		gpcCfg.OAuthScope = "quiz"
 	}
 	gpcClient := newGpcClient(gpcCfg, dataDir)
-	quiz := NewQuizStore(dataDir, gpcClient, gpcCfg.DailyLimit, gpcCfg.OAuthScope, gpcCfg.RedirectURI)
+	quiz := NewQuizStore(dataDir, gpcClient, gpcCfg.OAuthScope, gpcCfg.RedirectURI)
 
 	// Best-effort bootstrap: register the GPC OAuth client now so the first
 	// client request is fast. Failures are logged but do not stop the server.

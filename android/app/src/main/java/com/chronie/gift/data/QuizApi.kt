@@ -21,13 +21,13 @@ object QuizApi {
     private val client = ApiClient.client
     private val json = Json { ignoreUnknownKeys = true }
 
-    /** GET /api/quiz/questions — answers are stripped server-side. */
-    suspend fun fetchQuestions(baseUrl: String): List<QuestionPublic> {
+    /** GET /api/quiz/questions — period + questions (answers stripped server-side). */
+    suspend fun fetchQuestions(baseUrl: String): QuizQuestionsResponse {
         val text = withContext(Dispatchers.IO) {
             client.get("$baseUrl/api/quiz/questions").bodyAsText()
         }
-        val env = json.decodeFromString<ApiResponse<List<QuestionPublic>>>(text)
-        if (env.success && env.data != null) return env.data
+        val env = json.decodeFromString<QuizQuestionsResponse>(text)
+        if (env.success && env.data != null) return env
         throw Exception(env.message ?: "获取题目失败")
     }
 
@@ -50,17 +50,13 @@ object QuizApi {
         throw Exception(resp.message ?: "提交失败")
     }
 
-    /** GET /api/quiz/status — whether this token's user already submitted the quiz. */
-    suspend fun getStatus(baseUrl: String, token: String): Boolean {
+    /** GET /api/quiz/status — whether this period was submitted, plus the stored submission. */
+    suspend fun getStatus(baseUrl: String, token: String): QuizStatusData {
         val text = withContext(Dispatchers.IO) {
             client.get("$baseUrl/api/quiz/status?token=${java.net.URLEncoder.encode(token, "UTF-8")}").bodyAsText()
         }
-        val env = json.decodeFromString<ApiResponse<QuizStatusData>>(text)
-        if (env.success && env.data != null) return env.data.submitted
-        return false
+        val env = json.decodeFromString<QuizStatusData>(text)
+        if (env.success) return env
+        return QuizStatusData()
     }
 }
-
-/** Inner data of GET /api/quiz/status. */
-@Serializable
-private data class QuizStatusData(val submitted: Boolean = false)
