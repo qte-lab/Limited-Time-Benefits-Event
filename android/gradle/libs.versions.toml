@@ -1,6 +1,6 @@
 [versions]
 agp = "9.3.2"
-coilCompose = "3.5.0"
+coilCompose = "3.6.1"
 coilNetworkOkhttp = "3.6.1"
 kotlin = "2.4.10"
 coreKtx = "1.19.0"
