@@ -175,7 +175,9 @@ fun FoodSettingsScreen(
                     if (selectedTab == 0) {
                         AddFoodPane(
                             modifier = horizontalPadding,
-                            scrollBehavior = scrollBehavior
+                            scrollBehavior = scrollBehavior,
+                            budget = budget,
+                            onBudgetChange = { budget = it }
                         )
                     } else {
                         FoodListPane(
@@ -189,12 +191,12 @@ fun FoodSettingsScreen(
                                 editingFood = food
                                 editName = TextFieldValue(food.name)
                                 editWeight = TextFieldValue(food.weight.formatInput())
-                                // Left blank on purpose: a weight alone does not
-                                // identify a price (the dish may have been added
-                                // with a hand typed weight), so guessing one
+                                // The seeded menu ships with prices, so most dishes
+                                // open with one filled in. Dishes added before
+                                // pricing existed have none, and guessing one
                                 // would present a made-up number as if it were
                                 // the user's own.
-                                editPrice = TextFieldValue("")
+                                editPrice = TextFieldValue(food.price?.formatInput() ?: "")
                                 showEditDialog = true
                             }
                         )
@@ -340,7 +342,10 @@ fun FoodSettingsScreen(
                                         Toast.makeText(context, badWeightError, Toast.LENGTH_SHORT).show()
                                         return@TextButton
                                     }
-                                    FoodStore.update(context, dish.id, trimmed, parsed)
+                                    // A blank (or unparsable) price box means
+                                    // "this dish has no price", not "keep the old one".
+                                    val newPrice = editPrice.text.trim().toDoubleOrNull()?.takeIf { it > 0.0 }
+                                    FoodStore.update(context, dish.id, trimmed, parsed, newPrice)
                                     Toast.makeText(context, savedTemplate.format(trimmed), Toast.LENGTH_SHORT).show()
                                     showEditDialog = false
                                 },
@@ -354,20 +359,38 @@ fun FoodSettingsScreen(
     }
 }
 
-/** Pane 1: type a dish name and a weight, then append it to the wheel. */
+/**
+ * Pane 1: type a dish name, then either let a price work the weight out or
+ * type the weight by hand.
+ *
+ * The price row is strictly optional — it only ever *fills in* the weight box,
+ * which stays editable, so a dish can be added with a weight alone.
+ */
 @SuppressLint("LocalContextGetResourceValueCall")
 @Composable
 private fun AddFoodPane(
     modifier: Modifier = Modifier,
-    scrollBehavior: ScrollBehavior? = null
+    scrollBehavior: ScrollBehavior? = null,
+    budget: TextFieldValue,
+    onBudgetChange: (TextFieldValue) -> Unit
 ) {
     val context = LocalContext.current
 
     var name by remember { mutableStateOf(TextFieldValue("")) }
     var weight by remember { mutableStateOf(TextFieldValue("1.0")) }
+    var price by remember { mutableStateOf(TextFieldValue("")) }
 
     val nameEmptyError = stringResource(id = R.string.food_name_empty)
     val addedTemplate = stringResource(id = R.string.food_added)
+
+    /** Fills the weight box from price ÷ budget, leaving it alone while either side is blank. */
+    val recomputeWeight = { priceText: String, budgetText: String ->
+        val p = priceText.trim().toDoubleOrNull()
+        val b = budgetText.trim().toDoubleOrNull()
+        if (p != null && b != null) {
+            FoodStore.weightFromPrice(p, b)?.let { weight = TextFieldValue(it.formatInput()) }
+        }
+    }
 
     Column(
         modifier = modifier
@@ -388,6 +411,41 @@ private fun AddFoodPane(
             modifier = Modifier.fillMaxWidth(),
             label = stringResource(id = R.string.food_name_label),
             singleLine = true
+        )
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            TextField(
+                value = price,
+                onValueChange = {
+                    price = it
+                    recomputeWeight(it.text, budget.text)
+                },
+                modifier = Modifier.weight(1f),
+                label = stringResource(id = R.string.food_price_label),
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
+            )
+            TextField(
+                value = budget,
+                onValueChange = {
+                    onBudgetChange(it)
+                    recomputeWeight(price.text, it.text)
+                },
+                modifier = Modifier.weight(1f),
+                label = stringResource(id = R.string.food_budget_label),
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
+            )
+        }
+
+        Text(
+            text = stringResource(id = R.string.food_price_helper)
+                .format(FoodStore.MAX_WEIGHT.formatInput()),
+            style = MiuixTheme.textStyles.body2,
+            color = MiuixTheme.colorScheme.onSurfaceContainerVariant,
+            modifier = Modifier.padding(top = 8.dp)
         )
 
         Spacer(modifier = Modifier.height(12.dp))
@@ -419,10 +477,13 @@ private fun AddFoodPane(
                 }
                 val parsed = weight.text.trim().toDoubleOrNull()
                 val finalWeight = if (parsed == null || parsed <= 0.0) 1.0 else parsed
-                FoodStore.add(context, trimmed, finalWeight)
+                // Blank price box means "no price for this dish", not "keep the old one".
+                val newPrice = price.text.trim().toDoubleOrNull()?.takeIf { it > 0.0 }
+                FoodStore.add(context, trimmed, finalWeight, newPrice)
                 Toast.makeText(context, String.format(addedTemplate, trimmed), Toast.LENGTH_SHORT).show()
                 name = TextFieldValue("")
                 weight = TextFieldValue("1.0")
+                price = TextFieldValue("")
             },
             modifier = Modifier.fillMaxWidth()
         ) {
@@ -450,6 +511,7 @@ private fun FoodListPane(
     val foods = FoodStore.items
     val restoredToast = stringResource(id = R.string.food_restore_done)
     val weightTemplate = stringResource(id = R.string.food_weight_format)
+    val weightPriceTemplate = stringResource(id = R.string.food_weight_price_format)
 
     LazyColumn(
         modifier = modifier
@@ -494,7 +556,14 @@ private fun FoodListPane(
                                 style = MiuixTheme.textStyles.body1
                             )
                             Text(
-                                text = String.format(weightTemplate, formatWeight(food.weight)),
+                                text = if (food.price != null) {
+                                    weightPriceTemplate.format(
+                                        formatWeight(food.weight),
+                                        formatWeight(food.price)
+                                    )
+                                } else {
+                                    String.format(weightTemplate, formatWeight(food.weight))
+                                },
                                 style = MiuixTheme.textStyles.body2,
                                 color = MiuixTheme.colorScheme.onSurfaceContainerVariant
                             )

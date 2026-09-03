@@ -19,7 +19,15 @@ data class FoodItem(
     val id: Int,
     val name: String,
     val category: String = "",
-    val weight: Double = 1.0
+    val weight: Double = 1.0,
+    /**
+     * Price per serving in yuan, used to derive the weight from a budget.
+     *
+     * Null for dishes added before pricing existed (or typed in with a hand
+     * picked weight), which is why the field is optional: old saved data simply
+     * deserialises to null instead of failing.
+     */
+    val price: Double? = null
 )
 
 /**
@@ -52,24 +60,27 @@ object FoodPrefs {
     }
 
     /**
-     * The seed menu shipped with the app.
+     * The seed menu shipped with the app: what the dishes actually cost.
      *
-     * Weights encode price: cheaper dishes are more likely to be picked, so the
-     * wheel nudges towards a budget friendly lunch.
+     * Weights are *not* listed here — they are derived from the price against
+     * [FoodStore.DEFAULT_BUDGET], so the menu stays internally consistent: a
+     * cheaper dish is likelier to be picked, and typing a price into the edit
+     * dialog lands on the same number the seed data uses. Change the default
+     * budget and the whole seed menu re-derives with it.
      */
     fun defaults(): List<FoodItem> = listOf(
-        FoodItem(id = 1, name = "各式美味泡面", weight = 11.0),
-        FoodItem(id = 2, name = "蛋汁大排面", weight = 1.1),
-        FoodItem(id = 3, name = "凉皮", weight = 1.47),
-        FoodItem(id = 4, name = "鑫花溪牛肉米粉", weight = 0.88),
-        FoodItem(id = 5, name = "港式虾仁滑蛋", weight = 0.88),
-        FoodItem(id = 6, name = "热干面", weight = 1.47),
-        FoodItem(id = 7, name = "云南过桥米线", weight = 1.1),
-        FoodItem(id = 8, name = "汉堡", weight = 0.55),
-        FoodItem(id = 9, name = "奶茶", weight = 1.29),
-        FoodItem(id = 10, name = "馄饨", weight = 1.47),
-        FoodItem(id = 11, name = "火鸡面", weight = 0.88)
-    )
+        FoodItem(id = 1, name = "各式美味泡面", price = 2.0),
+        FoodItem(id = 2, name = "蛋汁大排面", price = 20.0),
+        FoodItem(id = 3, name = "凉皮", price = 8.0),
+        FoodItem(id = 4, name = "鑫花溪牛肉米粉", price = 23.0),
+        FoodItem(id = 5, name = "港式虾仁滑蛋", price = 30.0),
+        FoodItem(id = 6, name = "热干面", price = 12.0),
+        FoodItem(id = 7, name = "云南过桥米线", price = 21.0),
+        FoodItem(id = 8, name = "汉堡", price = 40.0),
+        FoodItem(id = 9, name = "奶茶", price = 15.0),
+        FoodItem(id = 10, name = "馄饨", price = 12.0),
+        FoodItem(id = 11, name = "火鸡面", price = 15.0)
+    ).map { it.copy(weight = FoodStore.weightFromPrice(it.price!!, FoodStore.DEFAULT_BUDGET) ?: 1.0) }
 }
 
 /**
@@ -105,9 +116,15 @@ object FoodStore {
         loaded = true
     }
 
-    fun add(context: Context, name: String, weight: Double) {
+    /**
+     * Appends a dish to the wheel.
+     *
+     * [price] is optional: a dish can be added with a hand typed weight alone,
+     * in which case the price box was simply left empty.
+     */
+    fun add(context: Context, name: String, weight: Double, price: Double? = null) {
         val nextId = (items.maxOfOrNull { it.id } ?: 0) + 1
-        items.add(FoodItem(id = nextId, name = name, weight = weight))
+        items.add(FoodItem(id = nextId, name = name, weight = weight, price = price))
         FoodPrefs.save(context, items)
     }
 
@@ -123,11 +140,15 @@ object FoodStore {
      * The list is a [SnapshotStateList], so the in place assignment notifies
      * observers (the wheel screen redraws its sectors) without needing the item
      * to be removed and re-added, which would also change its position.
+     *
+     * [price] is passed explicitly rather than defaulted because "no price" and
+     * "leave the price alone" are different outcomes: clearing the price box
+     * must be able to drop the stored value.
      */
-    fun update(context: Context, id: Int, name: String, weight: Double) {
+    fun update(context: Context, id: Int, name: String, weight: Double, price: Double?) {
         val index = items.indexOfFirst { it.id == id }
         if (index < 0) return
-        items[index] = items[index].copy(name = name, weight = weight)
+        items[index] = items[index].copy(name = name, weight = weight, price = price)
         FoodPrefs.save(context, items)
     }
 
