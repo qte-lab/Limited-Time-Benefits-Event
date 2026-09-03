@@ -56,7 +56,6 @@ import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.Back
 import top.yukonga.miuix.kmp.icon.extended.Delete
 import top.yukonga.miuix.kmp.icon.extended.Edit
-import top.yukonga.miuix.kmp.theme.LocalDismissState
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.window.WindowDialog
 
@@ -87,13 +86,21 @@ fun FoodSettingsScreen(
 
     var selectedTab by remember { mutableIntStateOf(0) }
 
-    // The dish pending deletion — non-null only while the confirmation dialog is shown.
+    // Both dialogs stay composed until their exit animation finishes, so each one
+    // is driven by two pieces of state: the dish being acted on (kept alive until
+    // `onDismissFinished`, which is when the dialog finally leaves the
+    // composition) and a separate `show` flag that starts the hide animation as
+    // soon as it flips to false.
+    //
+    // The dish pending deletion — non-null while the confirmation dialog is on screen.
     var pendingDeleteFood by remember { mutableStateOf<FoodItem?>(null) }
+    var showDeleteDialog by remember { mutableStateOf(false) }
 
     // The dish being edited, plus the draft values backing the edit dialog. They
     // live here rather than inside the dialog so the dialog can be dismissed
     // (and even recomposed during the dismiss animation) without losing input.
     var editingFood by remember { mutableStateOf<FoodItem?>(null) }
+    var showEditDialog by remember { mutableStateOf(false) }
     var editName by remember { mutableStateOf(TextFieldValue("")) }
     var editWeight by remember { mutableStateOf(TextFieldValue("")) }
     var editPrice by remember { mutableStateOf(TextFieldValue("")) }
@@ -174,7 +181,10 @@ fun FoodSettingsScreen(
                         FoodListPane(
                             modifier = horizontalPadding,
                             scrollBehavior = scrollBehavior,
-                            onDelete = { pendingDeleteFood = it },
+                            onDelete = {
+                                pendingDeleteFood = it
+                                showDeleteDialog = true
+                            },
                             onEdit = { food ->
                                 editingFood = food
                                 editName = TextFieldValue(food.name)
@@ -185,6 +195,7 @@ fun FoodSettingsScreen(
                                 // would present a made-up number as if it were
                                 // the user's own.
                                 editPrice = TextFieldValue("")
+                                showEditDialog = true
                             }
                         )
                     }
@@ -193,16 +204,13 @@ fun FoodSettingsScreen(
 
             // Second confirmation before a dish is removed.
             if (pendingDeleteFood != null) {
-                val dismiss = LocalDismissState.current
                 val foodName = pendingDeleteFood!!.name
                 WindowDialog(
                     title = stringResource(id = R.string.food_delete_confirm_title),
                     summary = stringResource(id = R.string.food_delete_confirm_summary).format(foodName),
-                    show = true,
-                    onDismissRequest = {
-                        dismiss?.invoke()
-                        pendingDeleteFood = null
-                    }
+                    show = showDeleteDialog,
+                    onDismissRequest = { showDeleteDialog = false },
+                    onDismissFinished = { pendingDeleteFood = null }
                 ) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -210,10 +218,7 @@ fun FoodSettingsScreen(
                     ) {
                         TextButton(
                             text = stringResource(id = R.string.food_cancel),
-                            onClick = {
-                                dismiss?.invoke()
-                                pendingDeleteFood = null
-                            },
+                            onClick = { showDeleteDialog = false },
                             modifier = Modifier.weight(1f)
                         )
                         TextButton(
@@ -222,9 +227,10 @@ fun FoodSettingsScreen(
                                 textColor = androidx.compose.ui.graphics.Color(0xFFE53935)
                             ),
                             onClick = {
-                                FoodStore.delete(context, pendingDeleteFood!!.id)
-                                dismiss?.invoke()
-                                pendingDeleteFood = null
+                                // Snapshot the id: the row is already gone from
+                                // the list by the time the exit animation ends.
+                                pendingDeleteFood?.let { FoodStore.delete(context, it.id) }
+                                showDeleteDialog = false
                             },
                             modifier = Modifier.weight(1f)
                         )
@@ -236,7 +242,6 @@ fun FoodSettingsScreen(
             // work the weight out.
             if (editingFood != null) {
                 val dish = editingFood!!
-                val dismiss = LocalDismissState.current
                 val emptyNameError = stringResource(id = R.string.food_name_empty)
                 val badWeightError = stringResource(id = R.string.food_weight_invalid)
                 val savedTemplate = stringResource(id = R.string.food_saved)
@@ -252,11 +257,9 @@ fun FoodSettingsScreen(
 
                 WindowDialog(
                     title = stringResource(id = R.string.food_edit_title),
-                    show = true,
-                    onDismissRequest = {
-                        dismiss?.invoke()
-                        editingFood = null
-                    }
+                    show = showEditDialog,
+                    onDismissRequest = { showEditDialog = false },
+                    onDismissFinished = { editingFood = null }
                 ) {
                     Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
                         TextField(
@@ -321,10 +324,7 @@ fun FoodSettingsScreen(
                         ) {
                             TextButton(
                                 text = stringResource(id = R.string.food_cancel),
-                                onClick = {
-                                    dismiss?.invoke()
-                                    editingFood = null
-                                },
+                                onClick = { showEditDialog = false },
                                 modifier = Modifier.weight(1f)
                             )
                             TextButton(
@@ -342,8 +342,7 @@ fun FoodSettingsScreen(
                                     }
                                     FoodStore.update(context, dish.id, trimmed, parsed)
                                     Toast.makeText(context, savedTemplate.format(trimmed), Toast.LENGTH_SHORT).show()
-                                    dismiss?.invoke()
-                                    editingFood = null
+                                    showEditDialog = false
                                 },
                                 modifier = Modifier.weight(1f)
                             )

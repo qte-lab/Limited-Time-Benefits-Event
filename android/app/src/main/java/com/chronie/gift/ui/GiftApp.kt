@@ -54,6 +54,7 @@ import com.chronie.gift.ui.components.FloatingBottomBar
 import com.chronie.gift.ui.components.FloatingBottomBarItem
 import com.chronie.gift.ui.components.FloatingBottomBarMode
 import com.chronie.gift.data.AppDownloadManager
+import com.chronie.gift.data.ApkInstaller
 import top.yukonga.miuix.kmp.blur.rememberLayerBackdrop
 import top.yukonga.miuix.kmp.blur.layerBackdrop
 import com.chronie.gift.ui.components.UpdateDialog
@@ -210,13 +211,31 @@ fun GiftApp() {
         navigator.navigate(tab, launchSingleTop = true)
     }
 
-    // Handle update download
+    // Handle update download.
+    //
+    // Android 8.0+ refuses to install anything until the user has allowed this
+    // app to install unknown apps, so the permission is checked before the
+    // download rather than after it — otherwise the APK would be downloaded and
+    // then silently rejected. Once the download lands, AppDownloadManager hands
+    // it to the package installer automatically.
     val handleUpdate = {
         try {
-            val downloadManager = AppDownloadManager(context)
-            val downloadId = downloadManager.downloadApk(downloadUrl, latestVersion)
-            Toast.makeText(context, context.getString(R.string.update_start_download), Toast.LENGTH_SHORT).show()
-            showUpdateDialog = false
+            if (!ApkInstaller.canInstall(context)) {
+                ApkInstaller.openInstallPermissionSettings(context)
+                Toast.makeText(
+                    context,
+                    context.getString(R.string.update_need_install_permission),
+                    Toast.LENGTH_LONG
+                ).show()
+                showUpdateDialog = false
+            } else {
+                val downloadManager = AppDownloadManager(context)
+                // The ".apk" suffix matters: without it the installer has nothing
+                // to recognise and the file is useless in the Downloads folder.
+                downloadManager.downloadApk(downloadUrl, "$latestVersion.apk")
+                Toast.makeText(context, context.getString(R.string.update_start_download), Toast.LENGTH_SHORT).show()
+                showUpdateDialog = false
+            }
         } catch (e: Exception) {
             e.printStackTrace()
             Toast.makeText(context, context.getString(R.string.update_download_failed), Toast.LENGTH_SHORT).show()

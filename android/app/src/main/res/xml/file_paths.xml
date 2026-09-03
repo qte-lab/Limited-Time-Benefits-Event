@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- DownloadManager 的公共下载目录：Environment.getExternalStorageDirectory()/Download -->
+    <external-path name="downloads" path="Download/" />
+    <!-- 兜底：部分 ROM 会把文件放在外部存储根目录下 -->
+    <external-path name="external_root" path="." />
+    <!-- 应用专属外部目录，供以后改为私有目录下载时使用 -->
+    <external-files-path name="external_files" path="." />
+    <cache-path name="cache" path="." />
+</paths>
