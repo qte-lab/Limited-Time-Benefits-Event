@@ -18,7 +18,6 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
@@ -58,6 +57,7 @@ import top.yukonga.miuix.kmp.basic.SmallTopAppBar
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import kotlin.math.cos
+import kotlin.math.min
 import kotlin.math.sin
 
 /**
@@ -76,9 +76,6 @@ private val WHEEL_COLORS: List<Pair<Color, Color>> = listOf(
     Color(0xFFEC407A) to Color(0xFFAD1457), // pink
     Color(0xFF26A69A) to Color(0xFF00695C), // teal
 )
-
-/** Below this sector size the label no longer fits and is skipped. */
-private const val MIN_LABEL_SWEEP_DEG = 22.5f
 
 /**
  * The "今天吃什么" tab: a weighted spinning wheel.
@@ -259,19 +256,20 @@ private fun Wheel(
 
             if (items.isNotEmpty()) {
                 val total = items.sumOf { it.weight }.takeIf { it > 0.0 } ?: 1.0
-                val labelRadius = wheelSize * 0.35f
+                val labelRadius = wheelSize * 0.33f
+                val wheelRadius = wheelSize / 2f
                 var startAngle = -90f
 
                 items.forEach { food ->
                     val sweep = (360f * (food.weight / total)).toFloat().coerceAtLeast(0.5f)
-                    if (sweep >= MIN_LABEL_SWEEP_DEG) {
-                        SectorLabel(
-                            name = food.name,
-                            midAngle = startAngle + sweep / 2f,
-                            labelRadius = labelRadius,
-                            fontSize = labelFontSize
-                        )
-                    }
+                    SectorLabel(
+                        name = food.name,
+                        midAngle = startAngle + sweep / 2f,
+                        sweep = sweep,
+                        labelRadius = labelRadius,
+                        wheelRadius = wheelRadius,
+                        baseFontSize = labelFontSize
+                    )
                     startAngle += sweep
                 }
             }
@@ -320,27 +318,45 @@ private fun Wheel(
 }
 
 /**
- * One dish name, rotated so it reads along the sector it belongs to.
+ * One dish name, rotated so it reads radially (along the spoke) inside its sector,
+ * exactly like the original Flutter wheel: `canvas.rotate(midAngle)` followed by a
+ * horizontal [Text] makes the text run along the radius.
  *
- * [midAngle] is measured clockwise from 3 o'clock, matching how the sectors are
- * painted; adding 90 degrees turns the text upright relative to its sector.
+ * [midAngle] is measured clockwise from 3 o'clock, the same convention the sectors
+ * are painted with. The font auto-shrinks to fit inside both the wedge's arc
+ * (tangential room) and the available radius (radial room), so even the thinnest
+ * sector stays a single line that never bleeds into a neighbour.
  */
 @Composable
 private fun SectorLabel(
     name: String,
     midAngle: Float,
+    sweep: Float,
     labelRadius: Dp,
-    fontSize: TextUnit
+    wheelRadius: Dp,
+    baseFontSize: TextUnit
 ) {
     val radians = Math.toRadians(midAngle.toDouble())
+
+    // Tangential room available at this radius for this wedge (the text height
+    // after radial rotation must fit the arc).
+    val arcPx = (2.0 * Math.PI * labelRadius.value * (sweep / 360f)).toFloat()
+    // Radial room available for the text length (keep it inside the disc).
+    val radialRoomPx = min(labelRadius.value, (wheelRadius.value - labelRadius.value))
+        .coerceAtLeast(8f)
+    val fontByArc = arcPx / 1.3f
+    val fontByRadial = radialRoomPx / (name.length.coerceAtLeast(1) * 0.62f)
+    val fontSize = min(baseFontSize.value, min(fontByArc, fontByRadial))
+        .coerceAtLeast(8f)
+        .sp
+
     Box(
         modifier = Modifier
             .offset(
                 x = labelRadius * cos(radians).toFloat(),
                 y = labelRadius * sin(radians).toFloat()
             )
-            .rotate(midAngle + 90f)
-            .widthIn(max = labelRadius * 1.4f),
+            .rotate(midAngle),
         contentAlignment = Alignment.Center
     ) {
         Text(

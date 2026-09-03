@@ -5,7 +5,6 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
-import kotlin.math.floor
 import kotlin.random.Random
 
 /**
@@ -134,11 +133,18 @@ object FoodStore {
     /**
      * Absolute wheel rotation (degrees) that parks the pointer on [picked].
      *
-     * The wheel is drawn with sector 0 starting at 3 o'clock and sweeping
-     * clockwise, and the pointer is fixed at 12 o'clock (-90 degrees). Rotating
-     * the wheel clockwise by R puts the middle of the picked sector at
-     * `middle + R`, so `R = (-90 - middle) mod 360`. A few whole turns are added
-     * on top to keep the spin long enough to feel like a draw.
+     * The wheel is drawn with sector 0 starting at 12 o'clock (-90 degrees) and
+     * sweeping clockwise (see `Wheel.drawSectors`), and the pointer is fixed at
+     * 12 o'clock (-90 degrees). Rotating the wheel clockwise by R puts the
+     * middle of the picked sector at `middle + R`, so we need `R ≡ -90 - middle
+     * (mod 360)`. A few whole turns are added on top to keep the spin long
+     * enough to feel like a draw.
+     *
+     * The result is expressed as `base + turns*360 + needed`, where `base` is the
+     * largest multiple of 360 not exceeding [current]. Because `base` is already a
+     * multiple of 360, `R mod 360 == needed` for *every* spin — not just the
+     * first — so the pointer lands on the picked sector regardless of where the
+     * wheel currently sits.
      */
     fun targetRotation(current: Double, picked: FoodItem, items: List<FoodItem>): Double {
         if (items.isEmpty()) return current
@@ -158,9 +164,8 @@ object FoodStore {
 
         val needed = ((-90.0 - middle) % 360.0 + 360.0) % 360.0
         val currentMod = ((current % 360.0) + 360.0) % 360.0
-        val base = current - currentMod
-        val delta = ((needed - currentMod) % 360.0 + 360.0) % 360.0
+        val base = current - currentMod // largest multiple of 360 <= current
         val turns = 4 + Random.nextInt(3) // 4-6 whole turns
-        return floor(base) + turns * 360.0 + delta
+        return base + turns * 360.0 + needed
     }
 }
