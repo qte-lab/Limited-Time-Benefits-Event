@@ -76,7 +76,6 @@ func main() {
 
 	mux := http.NewServeMux()
 
-	mux.HandleFunc("/api/activities", handlerConfig.activitiesHandler)
 	mux.HandleFunc("/api/download_apk", handlerConfig.downloadApkHandler)
 	mux.HandleFunc("/api/download_apk/{filename}", handlerConfig.downloadApkFileHandler)
 	mux.HandleFunc("/api/outdate-test/markdown", handlerConfig.listMarkdownHandler)

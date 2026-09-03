@@ -37,19 +37,6 @@ func sendError(w http.ResponseWriter, status int, message string) {
 	})
 }
 
-func (h *HandlerConfig) activitiesHandler(w http.ResponseWriter, r *http.Request) {
-	activities, err := getActivities(h.dataDir, h.cache)
-	if err != nil {
-		sendError(w, http.StatusInternalServerError, "Failed to read activities data")
-		return
-	}
-	
-	sendJSON(w, http.StatusOK, map[string]interface{}{
-		"success": true,
-		"data":    activities,
-	})
-}
-
 func (h *HandlerConfig) downloadApkHandler(w http.ResponseWriter, r *http.Request) {
 	files, err := os.ReadDir(h.apkDir)
 	if err != nil {

@@ -60,28 +60,6 @@ func readJSONFile(filePath string, v interface{}) error {
 	return json.Unmarshal(content, v)
 }
 
-func getActivities(dataDir string, cache *Cache) ([]interface{}, error) {
-	if cached, ok := cache.Get("activities"); ok {
-		return cached.([]interface{}), nil
-	}
-	
-	var result struct {
-		Activities []interface{} `json:"activities"`
-	}
-	
-	err := readJSONFile(filepath.Join(dataDir, "activities.json"), &result)
-	if err != nil {
-		return nil, err
-	}
-	
-	if result.Activities == nil {
-		result.Activities = []interface{}{}
-	}
-	
-	cache.Set("activities", result.Activities)
-	return result.Activities, nil
-}
-
 func getChangelog(dataDir string, cache *Cache) (map[string]interface{}, error) {
 	if cached, ok := cache.Get("changelog"); ok {
 		return cached.(map[string]interface{}), nil
