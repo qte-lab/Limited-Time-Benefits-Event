@@ -108,4 +108,14 @@
     <string name="food_restore_done">已恢复默认菜单</string>
     <string name="food_delete_confirm_title">删除菜品</string>
     <string name="food_delete_confirm_summary">确定要删除「%1$s」吗？此操作无法撤销。</string>
+
+    <!-- 食物管理：编辑已有菜品 + 按价格换算权重 -->
+    <string name="food_edit">编辑</string>
+    <string name="food_edit_title">编辑菜品</string>
+    <string name="food_save">保存</string>
+    <string name="food_saved">已保存「%1$s」</string>
+    <string name="food_price_label">价格（元）</string>
+    <string name="food_budget_label">预算（元）</string>
+    <string name="food_price_helper">权重 = 预算 ÷ 价格，最高 %1$s</string>
+    <string name="food_weight_invalid">请输入大于 0 的权重</string>
 </resources>

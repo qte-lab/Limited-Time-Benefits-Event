@@ -81,6 +81,18 @@ object FoodPrefs {
  */
 object FoodStore {
 
+    /**
+     * Upper bound for a single dish's weight.
+     *
+     * Without a cap a very cheap dish (a 0.5 yuan sachet of instant noodles)
+     * would get a weight so large that the wheel becomes a single slice and the
+     * "draw" stops being a draw.
+     */
+    const val MAX_WEIGHT = 15.0
+
+    /** Default per-meal budget (yuan) used when deriving a weight from a price. */
+    const val DEFAULT_BUDGET = 12.0
+
     val items: SnapshotStateList<FoodItem> = mutableStateListOf()
 
     private var loaded = false
@@ -103,6 +115,37 @@ object FoodStore {
         if (items.removeAll { it.id == id }) {
             FoodPrefs.save(context, items)
         }
+    }
+
+    /**
+     * Renames an existing dish and/or reweights it.
+     *
+     * The list is a [SnapshotStateList], so the in place assignment notifies
+     * observers (the wheel screen redraws its sectors) without needing the item
+     * to be removed and re-added, which would also change its position.
+     */
+    fun update(context: Context, id: Int, name: String, weight: Double) {
+        val index = items.indexOfFirst { it.id == id }
+        if (index < 0) return
+        items[index] = items[index].copy(name = name, weight = weight)
+        FoodPrefs.save(context, items)
+    }
+
+    /**
+     * Weight implied by a dish's price for a given budget: `budget / price`,
+     * capped at [MAX_WEIGHT].
+     *
+     * This is the inverse of how the seed menu in [FoodPrefs.defaults] was
+     * built (an 8 yuan 凉皮 carries 1.47 ≈ 12/8), so editing a dish by price
+     * produces weights that sit on the same scale as the shipped ones. Returns
+     * null for inputs that cannot produce a meaningful weight, so callers can
+     * leave whatever the user already typed untouched instead of overwriting it
+     * with a placeholder mid-edit.
+     */
+    fun weightFromPrice(price: Double, budget: Double): Double? {
+        if (price <= 0.0 || price.isNaN() || price.isInfinite()) return null
+        if (budget <= 0.0 || budget.isNaN() || budget.isInfinite()) return null
+        return (budget / price).coerceIn(0.0, MAX_WEIGHT)
     }
 
     fun restoreDefaults(context: Context) {

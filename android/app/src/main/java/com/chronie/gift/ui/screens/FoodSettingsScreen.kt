@@ -16,6 +16,9 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -23,9 +26,9 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -39,16 +42,20 @@ import top.yukonga.miuix.kmp.basic.Button
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
+import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.Scaffold
+import top.yukonga.miuix.kmp.basic.ScrollBehavior
 import top.yukonga.miuix.kmp.basic.SmallTitle
 import top.yukonga.miuix.kmp.basic.TabRowWithContour
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextButton
 import top.yukonga.miuix.kmp.basic.TextField
 import top.yukonga.miuix.kmp.basic.TopAppBar
+import top.yukonga.miuix.kmp.basic.TopAppBarDefaults
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.Back
 import top.yukonga.miuix.kmp.icon.extended.Delete
+import top.yukonga.miuix.kmp.icon.extended.Edit
 import top.yukonga.miuix.kmp.theme.LocalDismissState
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.window.WindowDialog
@@ -60,6 +67,10 @@ import top.yukonga.miuix.kmp.window.WindowDialog
  * `flutter_app/lib/pages/food_page.dart`: same two panes (add a dish / list all
  * dishes), but pushed onto the app back stack so it gets the standard top app
  * bar, back gesture and screen transitions every other sub page in the app has.
+ *
+ * The top bar uses a large title that collapses into the small one as the pane
+ * below is pulled up; the tab row is pinned in the bar's `bottomContent` so it
+ * stays reachable while the large title folds away.
  */
 @SuppressLint("LocalContextGetResourceValueCall")
 @Composable
@@ -72,11 +83,25 @@ fun FoodSettingsScreen(
         FoodStore.ensureLoaded(context)
     }
 
+    val scrollBehavior = MiuixScrollBehavior()
+
     var selectedTab by remember { mutableIntStateOf(0) }
 
     // The dish pending deletion — non-null only while the confirmation dialog is shown.
     var pendingDeleteFood by remember { mutableStateOf<FoodItem?>(null) }
 
+    // The dish being edited, plus the draft values backing the edit dialog. They
+    // live here rather than inside the dialog so the dialog can be dismissed
+    // (and even recomposed during the dismiss animation) without losing input.
+    var editingFood by remember { mutableStateOf<FoodItem?>(null) }
+    var editName by remember { mutableStateOf(TextFieldValue("")) }
+    var editWeight by remember { mutableStateOf(TextFieldValue("")) }
+    var editPrice by remember { mutableStateOf(TextFieldValue("")) }
+    // Per-meal budget used to turn a price into a weight. Kept at screen level
+    // so it carries over from one dish to the next within this session.
+    var budget by remember { mutableStateOf(TextFieldValue(FoodStore.DEFAULT_BUDGET.formatInput())) }
+
+    val manageTitle = stringResource(id = R.string.food_manage_title)
     val tabs = listOf(
         stringResource(id = R.string.food_add_tab),
         stringResource(id = R.string.food_list_tab)
@@ -85,7 +110,9 @@ fun FoodSettingsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = stringResource(id = R.string.food_manage_title),
+                title = manageTitle,
+                largeTitle = manageTitle,
+                scrollBehavior = scrollBehavior,
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(
@@ -93,6 +120,22 @@ fun FoodSettingsScreen(
                             contentDescription = stringResource(id = R.string.back)
                         )
                     }
+                },
+                bottomContent = {
+                    // `TabRowWithContour` slides its indicator with an explicit tween (the
+                    // plain TabRow only moves when the inner LazyRow scrolls, which is
+                    // imperceptible with two tabs). Hosting it in `bottomContent` pins it
+                    // under the title: it rides up with the collapsing bar instead of
+                    // scrolling off with the pane, and the Scaffold's top padding already
+                    // accounts for its height.
+                    TabRowWithContour(
+                        tabs = tabs,
+                        selectedTabIndex = selectedTab,
+                        onTabSelected = { selectedTab = it },
+                        modifier = Modifier
+                            .padding(horizontal = TopAppBarDefaults.TitlePadding)
+                            .padding(bottom = 12.dp)
+                    )
                 }
             )
         }
@@ -114,17 +157,6 @@ fun FoodSettingsScreen(
                 )
                 .padding(top = paddingValues.calculateTopPadding())
         ) {
-            // `TabRowWithContour` slides its indicator with an explicit tween (the
-            // plain TabRow only moves when the inner LazyRow scrolls, which is
-            // imperceptible with two tabs). The horizontal padding keeps the pill
-            // off the screen edges, matching the panes below it.
-            TabRowWithContour(
-                tabs = tabs,
-                selectedTabIndex = selectedTab,
-                onTabSelected = { selectedTab = it },
-                modifier = Modifier.padding(horizontal = 16.dp)
-            )
-
             BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
                 val isWideScreen = maxWidth >= 600.dp
                 val horizontalPadding = if (isWideScreen) Modifier.fillMaxWidth(0.8f) else Modifier.fillMaxWidth()
@@ -134,9 +166,27 @@ fun FoodSettingsScreen(
                     contentAlignment = if (isWideScreen) Alignment.TopCenter else Alignment.TopStart
                 ) {
                     if (selectedTab == 0) {
-                        AddFoodPane(modifier = horizontalPadding)
+                        AddFoodPane(
+                            modifier = horizontalPadding,
+                            scrollBehavior = scrollBehavior
+                        )
                     } else {
-                        FoodListPane(modifier = horizontalPadding, onDelete = { pendingDeleteFood = it })
+                        FoodListPane(
+                            modifier = horizontalPadding,
+                            scrollBehavior = scrollBehavior,
+                            onDelete = { pendingDeleteFood = it },
+                            onEdit = { food ->
+                                editingFood = food
+                                editName = TextFieldValue(food.name)
+                                editWeight = TextFieldValue(food.weight.formatInput())
+                                // Left blank on purpose: a weight alone does not
+                                // identify a price (the dish may have been added
+                                // with a hand typed weight), so guessing one
+                                // would present a made-up number as if it were
+                                // the user's own.
+                                editPrice = TextFieldValue("")
+                            }
+                        )
                     }
                 }
             }
@@ -181,6 +231,126 @@ fun FoodSettingsScreen(
                     }
                 }
             }
+
+            // Edit an existing dish: rename it, retype the weight, or let a price
+            // work the weight out.
+            if (editingFood != null) {
+                val dish = editingFood!!
+                val dismiss = LocalDismissState.current
+                val emptyNameError = stringResource(id = R.string.food_name_empty)
+                val badWeightError = stringResource(id = R.string.food_weight_invalid)
+                val savedTemplate = stringResource(id = R.string.food_saved)
+
+                /** Recomputes the weight from price ÷ budget, if both are usable. */
+                val recomputeWeight = { price: String, money: String ->
+                    val p = price.trim().toDoubleOrNull()
+                    val b = money.trim().toDoubleOrNull()
+                    if (p != null && b != null) {
+                        FoodStore.weightFromPrice(p, b)?.let { editWeight = TextFieldValue(it.formatInput()) }
+                    }
+                }
+
+                WindowDialog(
+                    title = stringResource(id = R.string.food_edit_title),
+                    show = true,
+                    onDismissRequest = {
+                        dismiss?.invoke()
+                        editingFood = null
+                    }
+                ) {
+                    Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+                        TextField(
+                            value = editName,
+                            onValueChange = { editName = it },
+                            modifier = Modifier.fillMaxWidth(),
+                            label = stringResource(id = R.string.food_name_label),
+                            singleLine = true
+                        )
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                            TextField(
+                                value = editPrice,
+                                onValueChange = {
+                                    editPrice = it
+                                    recomputeWeight(it.text, budget.text)
+                                },
+                                modifier = Modifier.weight(1f),
+                                label = stringResource(id = R.string.food_price_label),
+                                singleLine = true,
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
+                            )
+                            TextField(
+                                value = budget,
+                                onValueChange = {
+                                    budget = it
+                                    recomputeWeight(editPrice.text, it.text)
+                                },
+                                modifier = Modifier.weight(1f),
+                                label = stringResource(id = R.string.food_budget_label),
+                                singleLine = true,
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
+                            )
+                        }
+
+                        Text(
+                            text = stringResource(id = R.string.food_price_helper)
+                                .format(FoodStore.MAX_WEIGHT.formatInput()),
+                            style = MiuixTheme.textStyles.body2,
+                            color = MiuixTheme.colorScheme.onSurfaceContainerVariant,
+                            modifier = Modifier.padding(top = 8.dp)
+                        )
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        TextField(
+                            value = editWeight,
+                            onValueChange = { editWeight = it },
+                            modifier = Modifier.fillMaxWidth(),
+                            label = stringResource(id = R.string.food_weight_label),
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
+                        )
+
+                        Spacer(modifier = Modifier.height(20.dp))
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            TextButton(
+                                text = stringResource(id = R.string.food_cancel),
+                                onClick = {
+                                    dismiss?.invoke()
+                                    editingFood = null
+                                },
+                                modifier = Modifier.weight(1f)
+                            )
+                            TextButton(
+                                text = stringResource(id = R.string.food_save),
+                                onClick = {
+                                    val trimmed = editName.text.trim()
+                                    if (trimmed.isEmpty()) {
+                                        Toast.makeText(context, emptyNameError, Toast.LENGTH_SHORT).show()
+                                        return@TextButton
+                                    }
+                                    val parsed = editWeight.text.trim().toDoubleOrNull()
+                                    if (parsed == null || parsed <= 0.0) {
+                                        Toast.makeText(context, badWeightError, Toast.LENGTH_SHORT).show()
+                                        return@TextButton
+                                    }
+                                    FoodStore.update(context, dish.id, trimmed, parsed)
+                                    Toast.makeText(context, savedTemplate.format(trimmed), Toast.LENGTH_SHORT).show()
+                                    dismiss?.invoke()
+                                    editingFood = null
+                                },
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+                    }
+                }
+            }
         }
     }
 }
@@ -188,7 +358,10 @@ fun FoodSettingsScreen(
 /** Pane 1: type a dish name and a weight, then append it to the wheel. */
 @SuppressLint("LocalContextGetResourceValueCall")
 @Composable
-private fun AddFoodPane(modifier: Modifier = Modifier) {
+private fun AddFoodPane(
+    modifier: Modifier = Modifier,
+    scrollBehavior: ScrollBehavior? = null
+) {
     val context = LocalContext.current
 
     var name by remember { mutableStateOf(TextFieldValue("")) }
@@ -200,6 +373,10 @@ private fun AddFoodPane(modifier: Modifier = Modifier) {
     Column(
         modifier = modifier
             .fillMaxSize()
+            // Scrolling the pane is what collapses the large title; without the
+            // nestedScroll link the bar would never receive the gesture.
+            .nestedScrollIf(scrollBehavior)
+            .verticalScroll(rememberScrollState())
             .padding(horizontal = 16.dp, vertical = 12.dp)
     ) {
         SmallTitle(text = stringResource(id = R.string.food_add_title))
@@ -259,12 +436,14 @@ private fun AddFoodPane(modifier: Modifier = Modifier) {
     }
 }
 
-/** Pane 2: every dish currently on the wheel, with its weight and a delete action. */
+/** Pane 2: every dish currently on the wheel, with its weight and edit/delete actions. */
 @SuppressLint("LocalContextGetResourceValueCall")
 @Composable
 private fun FoodListPane(
     modifier: Modifier = Modifier,
-    onDelete: (FoodItem) -> Unit = {}
+    scrollBehavior: ScrollBehavior? = null,
+    onDelete: (FoodItem) -> Unit = {},
+    onEdit: (FoodItem) -> Unit = {}
 ) {
     val context = LocalContext.current
     // Named `foods` rather than `items`: the LazyColumn DSL function is also
@@ -274,7 +453,10 @@ private fun FoodListPane(
     val weightTemplate = stringResource(id = R.string.food_weight_format)
 
     LazyColumn(
-        modifier = modifier.fillMaxSize(),
+        modifier = modifier
+            .fillMaxSize()
+            // Feeds the pull gesture to the top bar so the large title collapses.
+            .nestedScrollIf(scrollBehavior),
         contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 24.dp)
     ) {
         if (foods.isEmpty()) {
@@ -318,12 +500,21 @@ private fun FoodListPane(
                                 color = MiuixTheme.colorScheme.onSurfaceContainerVariant
                             )
                         }
-                        IconButton(onClick = { onDelete(food) }) {
-                            Icon(
-                                imageVector = MiuixIcons.Delete,
-                                contentDescription = stringResource(id = R.string.food_delete),
-                                tint = MiuixTheme.colorScheme.onSurfaceContainerVariant
-                            )
+                        Row {
+                            IconButton(onClick = { onEdit(food) }) {
+                                Icon(
+                                    imageVector = MiuixIcons.Edit,
+                                    contentDescription = stringResource(id = R.string.food_edit),
+                                    tint = MiuixTheme.colorScheme.onSurfaceContainerVariant
+                                )
+                            }
+                            IconButton(onClick = { onDelete(food) }) {
+                                Icon(
+                                    imageVector = MiuixIcons.Delete,
+                                    contentDescription = stringResource(id = R.string.food_delete),
+                                    tint = MiuixTheme.colorScheme.onSurfaceContainerVariant
+                                )
+                            }
                         }
                     }
                 }
@@ -345,8 +536,15 @@ private fun FoodListPane(
     }
 }
 
+/** Applies [behavior]'s nested scroll connection, or does nothing when there is none. */
+private fun Modifier.nestedScrollIf(behavior: ScrollBehavior?): Modifier =
+    if (behavior == null) this else this.nestedScroll(behavior.nestedScrollConnection)
+
 /** Trims a weight to at most two decimals so "1.0" does not render as "1.000000". */
 private fun formatWeight(value: Double): String {
     val rounded = kotlin.math.round(value * 100.0) / 100.0
     return if (rounded % 1.0 == 0.0) rounded.toLong().toString() else rounded.toString()
 }
+
+/** Same trimming as [formatWeight], used for text that has to parse back into a double. */
+private fun Double.formatInput(): String = formatWeight(this)
