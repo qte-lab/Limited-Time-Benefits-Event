@@ -8,6 +8,7 @@ import top.yukonga.miuix.kmp.basic.FloatingNavigationBarItem
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.HorizontalSplit
 import top.yukonga.miuix.kmp.icon.extended.ListView
+import top.yukonga.miuix.kmp.icon.extended.Promotions
 import top.yukonga.miuix.kmp.icon.extended.Settings
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
@@ -20,7 +21,8 @@ fun TabBar(
     val selectedIndex = when (selectedTab) {
         "home" -> 0
         "answers" -> 1
-        "settings" -> 2
+        "food" -> 2
+        "settings" -> 3
         else -> 0
     }
 
@@ -28,6 +30,7 @@ fun TabBar(
     val tabs = listOf(
         Triple("home", MiuixIcons.HorizontalSplit, stringResource(id = R.string.tab_home)),
         Triple("answers", MiuixIcons.ListView, stringResource(id = R.string.tab_answers)),
+        Triple("food", MiuixIcons.Promotions, stringResource(id = R.string.tab_food)),
         Triple("settings", MiuixIcons.Settings, stringResource(id = R.string.tab_settings))
     )
 

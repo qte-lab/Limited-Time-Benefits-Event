@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.dp
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.icon.extended.HorizontalSplit
 import top.yukonga.miuix.kmp.icon.extended.ListView
+import top.yukonga.miuix.kmp.icon.extended.Promotions
 import top.yukonga.miuix.kmp.icon.extended.Settings
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.Scaffold
@@ -57,6 +58,8 @@ import top.yukonga.miuix.kmp.blur.rememberLayerBackdrop
 import top.yukonga.miuix.kmp.blur.layerBackdrop
 import com.chronie.gift.ui.components.UpdateDialog
 import com.chronie.gift.ui.navigation.AnswersKey
+import com.chronie.gift.ui.navigation.FoodKey
+import com.chronie.gift.ui.navigation.FoodSettingsKey
 import com.chronie.gift.ui.navigation.HomeKey
 import com.chronie.gift.ui.navigation.LicensesKey
 import com.chronie.gift.ui.navigation.SettingsKey
@@ -65,6 +68,8 @@ import com.chronie.gift.ui.navigation.TabNavKey
 import com.chronie.gift.ui.navigation.rememberGiftNavigator
 import com.chronie.gift.ui.navigation.tabKeyOf
 import com.chronie.gift.ui.screens.AnswerKeysScreen
+import com.chronie.gift.ui.screens.FoodScreen
+import com.chronie.gift.ui.screens.FoodSettingsScreen
 import com.chronie.gift.ui.screens.QuizScreen
 import com.chronie.gift.R
 import com.chronie.gift.ui.screens.LicensesScreen
@@ -271,7 +276,7 @@ fun GiftApp() {
                                             onTabSelected(TAB_KEYS.getOrElse(index) { HomeKey })
                                         },
                                         backdrop = backdrop,
-                                        tabsCount = 3,
+                                        tabsCount = 4,
                                         mode = navMode,
                                         autoWidth = true,
                                         isTopMode = false,
@@ -307,8 +312,23 @@ fun GiftApp() {
                                             )
                                         }
                                         FloatingBottomBarItem(
-                                            onClick = { onTabSelected(SettingsKey) },
+                                            onClick = { onTabSelected(FoodKey) },
                                             tabIndex = 2,
+                                        ) {
+                                            Icon(
+                                                imageVector = MiuixIcons.Promotions,
+                                                contentDescription = stringResource(R.string.tab_food),
+                                            )
+                                            Text(
+                                                stringResource(R.string.tab_food),
+                                                fontSize = 11.sp,
+                                                maxLines = 1,
+                                                softWrap = false,
+                                            )
+                                        }
+                                        FloatingBottomBarItem(
+                                            onClick = { onTabSelected(SettingsKey) },
+                                            tabIndex = 3,
                                         ) {
                                             Icon(
                                                 imageVector = MiuixIcons.Settings,
@@ -361,7 +381,7 @@ fun GiftApp() {
                                             onTabSelected(TAB_KEYS.getOrElse(index) { HomeKey })
                                         },
                                         backdrop = backdrop,
-                                        tabsCount = 3,
+                                        tabsCount = 4,
                                         mode = navMode,
                                         autoWidth = true,
                                         isTopMode = true,
@@ -392,8 +412,20 @@ fun GiftApp() {
                                             )
                                         }
                                         FloatingBottomBarItem(
-                                            onClick = { onTabSelected(SettingsKey) },
+                                            onClick = { onTabSelected(FoodKey) },
                                             tabIndex = 2,
+                                        ) {
+                                            Text(
+                                                stringResource(R.string.tab_food),
+                                                fontSize = 14.sp,
+                                                maxLines = 1,
+                                                softWrap = false,
+                                                overflow = TextOverflow.Ellipsis,
+                                            )
+                                        }
+                                        FloatingBottomBarItem(
+                                            onClick = { onTabSelected(SettingsKey) },
+                                            tabIndex = 3,
                                         ) {
                                             Text(
                                                 stringResource(R.string.tab_settings),
@@ -459,6 +491,9 @@ fun GiftApp() {
                                 entry<AnswersKey> {
                                     AnswerKeysScreen()
                                 }
+                                entry<FoodKey> {
+                                    FoodScreen()
+                                }
                                 entry<SettingsKey> {
                                     SettingsScreen(
                                         onThemeUpdated = updateThemeMode,
@@ -471,11 +506,21 @@ fun GiftApp() {
                                         isCheckingUpdate = isCheckingUpdate,
                                         onNavigateToLicenses = {
                                             navigator.push(LicensesKey)
+                                        },
+                                        onNavigateToFoodSettings = {
+                                            navigator.push(FoodSettingsKey)
                                         }
                                     )
                                 }
                                 entry<LicensesKey> {
                                     LicensesScreen(
+                                        onBack = {
+                                            navigator.pop()
+                                        }
+                                    )
+                                }
+                                entry<FoodSettingsKey> {
+                                    FoodSettingsScreen(
                                         onBack = {
                                             navigator.pop()
                                         }

@@ -13,6 +13,7 @@ import kotlinx.serialization.Serializable
 object TabIds {
     const val HOME = "home"
     const val ANSWERS = "answers"
+    const val FOOD = "food"
     const val SETTINGS = "settings"
 }
 
@@ -47,6 +48,12 @@ data object AnswersKey : TabNavKey {
     override val tabId: String get() = TabIds.ANSWERS
 }
 
+/** The "今天吃什么" wheel, third of the four tabs. */
+@Serializable
+data object FoodKey : TabNavKey {
+    override val tabId: String get() = TabIds.FOOD
+}
+
 @Serializable
 data object SettingsKey : TabNavKey {
     override val tabId: String get() = TabIds.SETTINGS
@@ -56,8 +63,12 @@ data object SettingsKey : TabNavKey {
 @Serializable
 data object LicensesKey : GiftNavKey
 
+/** Food management for the "今天吃什么" wheel, pushed on top of [SettingsKey]. */
+@Serializable
+data object FoodSettingsKey : GiftNavKey
+
 /** Tabs in the order they are rendered by the floating bottom bar. */
-val TAB_KEYS: List<TabNavKey> = listOf(HomeKey, AnswersKey, SettingsKey)
+val TAB_KEYS: List<TabNavKey> = listOf(HomeKey, AnswersKey, FoodKey, SettingsKey)
 
 /** Maps a persisted [TabIds] value back to its key, falling back to [HomeKey]. */
 fun tabKeyOf(tabId: String?): TabNavKey = TAB_KEYS.firstOrNull { it.tabId == tabId } ?: HomeKey

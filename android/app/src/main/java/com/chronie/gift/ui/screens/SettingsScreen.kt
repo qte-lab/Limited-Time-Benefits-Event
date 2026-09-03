@@ -1,13 +1,16 @@
 package com.chronie.gift.ui.screens
 
 import android.annotation.SuppressLint
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -28,8 +31,11 @@ import top.yukonga.miuix.kmp.basic.TopAppBar
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.Card
+import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.SmallTitle
 import top.yukonga.miuix.kmp.basic.Scaffold
+import top.yukonga.miuix.kmp.icon.MiuixIcons
+import top.yukonga.miuix.kmp.icon.extended.ChevronForward
 import top.yukonga.miuix.kmp.preference.OverlayDropdownPreference
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
@@ -39,7 +45,8 @@ fun SettingsScreen(
     onThemeUpdated: (String) -> Unit = {},
     onCheckUpdate: () -> Unit = {},
     isCheckingUpdate: Boolean = false,
-    onNavigateToLicenses: () -> Unit = {}
+    onNavigateToLicenses: () -> Unit = {},
+    onNavigateToFoodSettings: () -> Unit = {}
 ) {
     val context = LocalContext.current
     
@@ -113,6 +120,34 @@ fun SettingsScreen(
                     )
                 }
                 
+                SmallTitle(text = stringResource(id = R.string.food_settings_section))
+
+                Card(
+                    modifier = Modifier.padding(bottom = 16.dp),
+                    pressFeedbackType = top.yukonga.miuix.kmp.utils.PressFeedbackType.Sink,
+                    showIndication = true,
+                    onClick = onNavigateToFoodSettings,
+                    insideMargin = androidx.compose.foundation.layout.PaddingValues(16.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            text = stringResource(id = R.string.food_manage_title),
+                            style = MiuixTheme.textStyles.body1,
+                            color = MiuixTheme.colorScheme.onSurface
+                        )
+                        Icon(
+                            imageVector = MiuixIcons.ChevronForward,
+                            contentDescription = null,
+                            tint = MiuixTheme.colorScheme.onSurfaceContainerVariant,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                }
+
                 SmallTitle(text = stringResource(id = R.string.version_info))
 
                 Card(
