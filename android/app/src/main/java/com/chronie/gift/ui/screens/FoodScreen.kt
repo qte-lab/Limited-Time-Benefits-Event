@@ -18,6 +18,8 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
@@ -52,9 +54,14 @@ import com.chronie.gift.data.FoodStore
 import kotlinx.coroutines.launch
 import top.yukonga.miuix.kmp.basic.Button
 import top.yukonga.miuix.kmp.basic.Card
+import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.SmallTopAppBar
 import top.yukonga.miuix.kmp.basic.Text
+import top.yukonga.miuix.kmp.icon.MiuixIcons
+import top.yukonga.miuix.kmp.icon.extended.Help
+import top.yukonga.miuix.kmp.icon.extended.MindMap
+import top.yukonga.miuix.kmp.icon.extended.Refresh
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import kotlin.math.cos
 import kotlin.math.min
@@ -134,6 +141,12 @@ fun FoodScreen() {
         else -> stringResource(id = R.string.food_spin)
     }
 
+    val buttonIcon = when {
+        isSpinning -> MiuixIcons.Refresh
+        selectedFood != null -> MiuixIcons.MindMap
+        else -> MiuixIcons.Help
+    }
+
     Scaffold(
         topBar = {
             SmallTopAppBar(title = stringResource(id = R.string.tab_food))
@@ -191,11 +204,22 @@ fun FoodScreen() {
                 modifier = Modifier.fillMaxWidth(),
                 enabled = !isSpinning
             ) {
-                Text(
-                    text = buttonText,
-                    style = MiuixTheme.textStyles.body1,
-                    fontWeight = FontWeight.Bold
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    Icon(
+                        imageVector = buttonIcon,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = buttonText,
+                        style = MiuixTheme.textStyles.body1,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.height(24.dp))

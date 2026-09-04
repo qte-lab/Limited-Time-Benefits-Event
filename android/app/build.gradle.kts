@@ -129,7 +129,7 @@ android {
     defaultConfig {
         applicationId = "com.chronie.gift"
         minSdk = 24
-        targetSdk = 37
+        targetSdk = 36
         
         // Use generated version code
         versionCode = generatedVersionCode

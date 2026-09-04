@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -36,6 +37,10 @@ import top.yukonga.miuix.kmp.basic.SmallTitle
 import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.ChevronForward
+import top.yukonga.miuix.kmp.icon.extended.Background
+import top.yukonga.miuix.kmp.icon.extended.ListView
+import top.yukonga.miuix.kmp.icon.extended.Update
+import top.yukonga.miuix.kmp.icon.extended.SelectAll
 import top.yukonga.miuix.kmp.preference.OverlayDropdownPreference
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
@@ -110,6 +115,14 @@ fun SettingsScreen(
                         title = stringResource(id = R.string.theme_settings),
                         items = themeOptions,
                         selectedIndex = selectedThemeIndex,
+                        startAction = {
+                            Icon(
+                                imageVector = MiuixIcons.Background,
+                                contentDescription = null,
+                                tint = MiuixTheme.colorScheme.onSurfaceVariantActions,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        },
                         onSelectedIndexChange = { index ->
                             selectedThemeIndex = index
                             val themeCode = themeCodes[index]
@@ -134,11 +147,22 @@ fun SettingsScreen(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Text(
-                            text = stringResource(id = R.string.food_manage_title),
-                            style = MiuixTheme.textStyles.body1,
-                            color = MiuixTheme.colorScheme.onSurface
-                        )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = MiuixIcons.ListView,
+                                contentDescription = null,
+                                tint = MiuixTheme.colorScheme.onSurfaceVariantActions,
+                                modifier = Modifier.size(24.dp)
+                            )
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Text(
+                                text = stringResource(id = R.string.food_manage_title),
+                                style = MiuixTheme.textStyles.body1,
+                                color = MiuixTheme.colorScheme.onSurface
+                            )
+                        }
                         Icon(
                             imageVector = MiuixIcons.ChevronForward,
                             contentDescription = null,
@@ -157,10 +181,17 @@ fun SettingsScreen(
                     onClick = onCheckUpdate,
                     insideMargin = androidx.compose.foundation.layout.PaddingValues(16.dp)
                 ) {
-                    Box(
+                    Row(
                         modifier = Modifier.fillMaxWidth(),
-                        contentAlignment = androidx.compose.ui.Alignment.Center
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
+                        Icon(
+                            imageVector = MiuixIcons.Update,
+                            contentDescription = null,
+                            tint = MiuixTheme.colorScheme.onSurfaceVariantActions,
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Spacer(modifier = Modifier.width(12.dp))
                         Text(
                             text = if (isCheckingUpdate) stringResource(id = R.string.update_checking) else stringResource(id = R.string.update_check_manually),
                             style = MiuixTheme.textStyles.body1,
@@ -178,14 +209,32 @@ fun SettingsScreen(
                     onClick = onNavigateToLicenses,
                     insideMargin = androidx.compose.foundation.layout.PaddingValues(16.dp)
                 ) {
-                    Box(
+                    Row(
                         modifier = Modifier.fillMaxWidth(),
-                        contentAlignment = androidx.compose.ui.Alignment.Center
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Text(
-                            text = stringResource(id = R.string.open_source_licenses),
-                            style = MiuixTheme.textStyles.body1,
-                            color = MiuixTheme.colorScheme.primary
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = MiuixIcons.SelectAll,
+                                contentDescription = null,
+                                tint = MiuixTheme.colorScheme.onSurfaceVariantActions,
+                                modifier = Modifier.size(24.dp)
+                            )
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Text(
+                                text = stringResource(id = R.string.open_source_licenses),
+                                style = MiuixTheme.textStyles.body1,
+                                color = MiuixTheme.colorScheme.primary
+                            )
+                        }
+                        Icon(
+                            imageVector = MiuixIcons.ChevronForward,
+                            contentDescription = null,
+                            tint = MiuixTheme.colorScheme.onSurfaceContainerVariant,
+                            modifier = Modifier.size(20.dp)
                         )
                     }
                 }

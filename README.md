@@ -1,6 +1,6 @@
-# 限时福利活动
+# 万事屋
 
-「限时福利活动」包含 Android 客户端与 Go 后端。后端提供答题领币、GPC授权发奖、APK 分发与内容服务；Android 端基于 Jetpack Compose 实现答题、题目答案、今天吃什么、设置等页面。
+「万事屋」包含 Android 客户端与 Go 后端。后端提供答题领币、GPC授权发奖、APK 分发与内容服务；Android 端基于 Jetpack Compose 实现答题、题目答案、今天吃什么、设置等页面。
 
 ## 功能特性
 

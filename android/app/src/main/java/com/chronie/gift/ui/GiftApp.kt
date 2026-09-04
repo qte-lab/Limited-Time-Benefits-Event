@@ -23,9 +23,6 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.ui.unit.dp
 import top.yukonga.miuix.kmp.basic.Icon
-import top.yukonga.miuix.kmp.icon.extended.HorizontalSplit
-import top.yukonga.miuix.kmp.icon.extended.ListView
-import top.yukonga.miuix.kmp.icon.extended.Promotions
 import top.yukonga.miuix.kmp.icon.extended.Settings
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.Scaffold
@@ -82,6 +79,9 @@ import top.yukonga.miuix.kmp.icon.MiuixIcons
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.launch
+import top.yukonga.miuix.kmp.icon.extended.Edit
+import top.yukonga.miuix.kmp.icon.extended.File
+import top.yukonga.miuix.kmp.icon.extended.SearchDevice
 
 @SuppressLint("LocalContextGetResourceValueCall")
 @Composable
@@ -305,7 +305,7 @@ fun GiftApp() {
                                             tabIndex = 0,
                                         ) {
                                             Icon(
-                                                imageVector = MiuixIcons.HorizontalSplit,
+                                                imageVector = MiuixIcons.Edit,
                                                 contentDescription = stringResource(R.string.tab_home),
                                             )
                                             Text(
@@ -320,7 +320,7 @@ fun GiftApp() {
                                             tabIndex = 1,
                                         ) {
                                             Icon(
-                                                imageVector = MiuixIcons.ListView,
+                                                imageVector = MiuixIcons.File,
                                                 contentDescription = stringResource(R.string.tab_answers),
                                             )
                                             Text(
@@ -335,7 +335,7 @@ fun GiftApp() {
                                             tabIndex = 2,
                                         ) {
                                             Icon(
-                                                imageVector = MiuixIcons.Promotions,
+                                                imageVector = MiuixIcons.SearchDevice,
                                                 contentDescription = stringResource(R.string.tab_food),
                                             )
                                             Text(
