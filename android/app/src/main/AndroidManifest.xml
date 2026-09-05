@@ -6,6 +6,12 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
+    <!-- Android 17 (API 37) Local Network Protection (LNP): required to reach the
+         on-LAN event server (http://192.168.10.9:3002) once targetSdk >= 37. -->
+    <uses-permission android:name="android.permission.ACCESS_LOCAL_NETWORK" />
+    <!-- Forward-looking cross-app loopback permission; kept even if unused for now. -->
+    <uses-permission android:name="android.permission.USE_LOOPBACK_INTERFACE" />
+
     <!-- Android 8.0+ 需要此权限才能向系统提交安装请求（仍由用户确认） -->
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 
@@ -21,7 +27,7 @@
         android:roundIcon="@drawable/icon"
         android:supportsRtl="true"
         android:theme="@style/Theme.Gift"
-        android:usesCleartextTraffic="true"
+        android:networkSecurityConfig="@xml/network_security_config"
         tools:targetApi="31">
         <activity
             android:name=".MainActivity"

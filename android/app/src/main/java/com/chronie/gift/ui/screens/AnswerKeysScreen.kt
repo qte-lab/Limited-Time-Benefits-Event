@@ -24,6 +24,8 @@ import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.serialization.kotlinx.json.*
 import kotlinx.serialization.*
 import com.chronie.gift.R
+import android.widget.Toast
+import com.chronie.gift.ui.permissions.rememberLocalNetworkPermissionRequester
 import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.SmallTopAppBar
 import top.yukonga.miuix.kmp.basic.PullToRefresh
@@ -294,6 +296,18 @@ fun AnswerKeysScreen() {
 @Composable
 fun MainContent(paddingValues: PaddingValues) {
     val baseUrl = "http://192.168.10.9:3002"
+
+    // Android 17 LNP: gate all local-network (192.168.10.9:3002) access behind the
+    // ACCESS_LOCAL_NETWORK permission. On denial we surface a clear message.
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val lnpRequester = rememberLocalNetworkPermissionRequester(
+        onDenied = {
+            setIsLoading(false)
+            setErrorMessage(context.getString(R.string.lan_permission_denied))
+        }
+    )
+
     val (markdownFiles, setMarkdownFiles) = remember { mutableStateOf<List<String>>(emptyList()) }
     val (selectedFile, setSelectedFile) = remember { mutableStateOf<String?>(null) }
     val (markdownContent, setMarkdownContent) = remember { mutableStateOf<String?>(null) }
@@ -330,23 +344,27 @@ fun MainContent(paddingValues: PaddingValues) {
     }
 
     LaunchedEffect(Unit, refreshTrigger) {
-        refreshData()
+        lnpRequester.ensure { scope.launch { refreshData() } }
     }
 
     LaunchedEffect(selectedFile) {
         if (selectedFile != null) {
-            setIsLoading(true)
-            setErrorMessage(null)
-            try {
-                val content = withContext(Dispatchers.IO) {
-                    MarkdownApiClient.fetchMarkdownContent(baseUrl, selectedFile)
+            lnpRequester.ensure {
+                scope.launch {
+                    setIsLoading(true)
+                    setErrorMessage(null)
+                    try {
+                        val content = withContext(Dispatchers.IO) {
+                            MarkdownApiClient.fetchMarkdownContent(baseUrl, selectedFile)
+                        }
+                        setMarkdownContent(content)
+                    } catch (e: Exception) {
+                        val errorMsg = "$errorGettingContent: ${e.message ?: ""}"
+                        setErrorMessage(errorMsg)
+                    } finally {
+                        setIsLoading(false)
+                    }
                 }
-                setMarkdownContent(content)
-            } catch (e: Exception) {
-                val errorMsg = "$errorGettingContent: ${e.message ?: ""}"
-                setErrorMessage(errorMsg)
-            } finally {
-                setIsLoading(false)
             }
         }
     }

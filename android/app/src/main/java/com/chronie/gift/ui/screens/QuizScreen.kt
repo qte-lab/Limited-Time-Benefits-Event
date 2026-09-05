@@ -25,8 +25,11 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import android.widget.Toast
 import com.chronie.gift.R
 import com.chronie.gift.data.*
+import com.chronie.gift.ui.permissions.LocalNetworkPermissionRequester
+import com.chronie.gift.ui.permissions.rememberLocalNetworkPermissionRequester
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.android.Android
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
@@ -136,22 +139,31 @@ private fun QuizContent(paddingValues: PaddingValues) {
     val scope = rememberCoroutineScope()
     val authState by GpcOAuthManager.state.collectAsState()
 
+    // Android 17 LNP: gate all local-network (192.168.10.9:3002) access behind the
+    // ACCESS_LOCAL_NETWORK permission. Shows a Toast on denial.
+    val lnpRequester = rememberLocalNetworkPermissionRequester(
+        onDenied = {
+            Toast.makeText(context, context.getString(R.string.lan_permission_denied), Toast.LENGTH_LONG).show()
+        }
+    )
+    val onAuthorize: () -> Unit = { lnpRequester.ensure { scope.launch { openAuthorize(context) } } }
+
     val rootModifier = Modifier
         .fillMaxSize()
         .padding(top = paddingValues.calculateTopPadding())
 
     when (val s = authState) {
         is GpcAuthState.Unauthorized ->
-            AuthGate(error = null, onAuthorize = { scope.launch { openAuthorize(context) } }, modifier = rootModifier)
+            AuthGate(error = null, onAuthorize = onAuthorize, modifier = rootModifier)
 
         is GpcAuthState.Authorizing ->
-            AuthorizingView(onRetry = { scope.launch { openAuthorize(context) } }, modifier = rootModifier)
+            AuthorizingView(onRetry = onAuthorize, modifier = rootModifier)
 
         is GpcAuthState.Error ->
-            AuthGate(error = s.message, onAuthorize = { scope.launch { openAuthorize(context) } }, modifier = rootModifier)
+            AuthGate(error = s.message, onAuthorize = onAuthorize, modifier = rootModifier)
 
         is GpcAuthState.Authorized ->
-            QuizView(token = s.token, paddingValues = paddingValues)
+            QuizView(token = s.token, paddingValues = paddingValues, lnpRequester = lnpRequester)
     }
 }
 
@@ -268,7 +280,7 @@ private fun PrimaryButton(text: String, onClick: () -> Unit, modifier: Modifier 
 /* ------------------------------------------------------------------ */
 
 @Composable
-private fun QuizView(token: String, paddingValues: PaddingValues) {
+private fun QuizView(token: String, paddingValues: PaddingValues, lnpRequester: LocalNetworkPermissionRequester) {
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     var questions by remember { mutableStateOf<List<QuestionPublic>>(emptyList()) }
@@ -298,7 +310,8 @@ private fun QuizView(token: String, paddingValues: PaddingValues) {
     )
 
     fun load() {
-        scope.launch {
+        lnpRequester.ensure {
+            scope.launch {
             isLoading = true
             error = null
             try {
@@ -345,6 +358,7 @@ private fun QuizView(token: String, paddingValues: PaddingValues) {
                 error = e.message
             } finally {
                 isLoading = false
+            }
             }
         }
     }
@@ -428,7 +442,8 @@ private fun QuizView(token: String, paddingValues: PaddingValues) {
                             icon = MiuixIcons.Send,
                             enabled = !submitting && !completed,
                             onClick = {
-                                scope.launch {
+                                lnpRequester.ensure {
+                                    scope.launch {
                                     submitting = true
                                     try {
                                         val resp = QuizApi.submit(QUIZ_BASE_URL, token, buildAnswers())
@@ -474,6 +489,7 @@ private fun QuizView(token: String, paddingValues: PaddingValues) {
                                     } finally {
                                         submitting = false
                                     }
+                                }
                                 }
                             }
                         )

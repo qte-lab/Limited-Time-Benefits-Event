@@ -32,6 +32,7 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.text.style.TextOverflow
@@ -58,6 +59,7 @@ import com.chronie.gift.ui.components.UpdateDialog
 import com.chronie.gift.ui.navigation.AnswersKey
 import com.chronie.gift.ui.navigation.FoodKey
 import com.chronie.gift.ui.navigation.FoodSettingsKey
+import com.chronie.gift.ui.permissions.rememberLocalNetworkPermissionRequester
 import com.chronie.gift.ui.navigation.HomeKey
 import com.chronie.gift.ui.navigation.LicensesKey
 import com.chronie.gift.ui.navigation.SettingsKey
@@ -87,6 +89,15 @@ import top.yukonga.miuix.kmp.icon.extended.SearchDevice
 @Composable
 fun GiftApp() {
     val context = LocalContext.current
+
+    // Android 17 LNP: the update check hits the on-LAN event server
+    // (http://192.168.10.9:3002). Gate it behind ACCESS_LOCAL_NETWORK.
+    val scope = rememberCoroutineScope()
+    val lnpRequester = rememberLocalNetworkPermissionRequester(
+        onDenied = {
+            Toast.makeText(context, context.getString(R.string.lan_permission_denied), Toast.LENGTH_LONG).show()
+        }
+    )
 
     // Tab management
     val tabManager = remember { TabManager(context) }
@@ -197,7 +208,7 @@ fun GiftApp() {
     
     // Automatically check for updates when app starts
     LaunchedEffect(Unit) {
-        checkForUpdates()
+        lnpRequester.ensure { scope.launch { checkForUpdates() } }
     }
 
     // Switching tabs pushes the tab onto the shared back stack, exactly like the previous
@@ -517,10 +528,7 @@ fun GiftApp() {
                                     SettingsScreen(
                                         onThemeUpdated = updateThemeMode,
                                         onCheckUpdate = {
-                                            val coroutineScope = kotlinx.coroutines.CoroutineScope(Dispatchers.Main)
-                                            coroutineScope.launch {
-                                                checkForUpdates()
-                                            }
+                                            lnpRequester.ensure { scope.launch { checkForUpdates() } }
                                         },
                                         isCheckingUpdate = isCheckingUpdate,
                                         onNavigateToLicenses = {

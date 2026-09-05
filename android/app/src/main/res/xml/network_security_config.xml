@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <!--
+        Local event server. The app talks to it over cleartext HTTP on the LAN
+        (http://192.168.10.9:3002). At targetSdk 37 the old
+        `android:usesCleartextTraffic="true"` attribute is deprecated, so the
+        cleartext policy is expressed here instead.
+    -->
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="false">192.168.10.9</domain>
+    </domain-config>
+
+    <!--
+        Keep global cleartext permitted (same behavior as the deprecated
+        usesCleartextTraffic=true) to avoid regressions for any other cleartext
+        host. Tighten this later once every endpoint is known/HTTPS.
+    -->
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>

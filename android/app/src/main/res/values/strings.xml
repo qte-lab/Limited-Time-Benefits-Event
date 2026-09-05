@@ -84,6 +84,10 @@
     <string name="quiz_period">本期：%1$s</string>
     <string name="quiz_draft_saved">您的作答已自动保存，可随时继续</string>
 
+    <!-- Local Network Protection (Android 17 / API 37) -->
+    <string name="lan_permission_denied">本应用需要访问局域网内的活动服务器（192.168.10.9:3002）。请在系统设置中授予「本地网络」权限后重试。</string>
+    <string name="lan_permission_rationale">需要「本地网络」权限才能连接同一 Wi-Fi 下的活动服务器，用于答题、往期题目与检查更新。</string>
+
     <!-- 今天吃什么 wheel -->
     <string name="food_spin">今天吃什么？</string>
     <string name="food_spin_again">换一个</string>
