@@ -92,6 +92,9 @@
     <string name="food_empty_wheel">暂无食物</string>
     <string name="food_empty_hint">还没有任何菜品，前往「设置 → 食物管理」添加吧</string>
     <string name="food_empty_toast">请先在「设置 → 食物管理」中添加菜品</string>
+    <string name="food_share">分享</string>
+    <string name="share_title">分享今天吃什么</string>
+    <string name="share_failed">分享失败，请稍后重试</string>
     <string name="food_empty_list">还没有任何菜品</string>
     <string name="food_add_tab">添加食物</string>
     <string name="food_list_tab">所有食物</string>
