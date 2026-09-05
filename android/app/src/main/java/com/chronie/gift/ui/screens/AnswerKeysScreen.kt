@@ -41,6 +41,7 @@ import top.yukonga.miuix.kmp.basic.Surface
 import top.yukonga.miuix.kmp.window.WindowListPopup
 import top.yukonga.miuix.kmp.basic.ListPopupColumn
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 @Serializable
@@ -297,22 +298,23 @@ fun AnswerKeysScreen() {
 fun MainContent(paddingValues: PaddingValues) {
     val baseUrl = "http://192.168.10.9:3002"
 
-    // Android 17 LNP: gate all local-network (192.168.10.9:3002) access behind the
-    // ACCESS_LOCAL_NETWORK permission. On denial we surface a clear message.
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    val lnpRequester = rememberLocalNetworkPermissionRequester(
-        onDenied = {
-            setIsLoading(false)
-            setErrorMessage(context.getString(R.string.lan_permission_denied))
-        }
-    )
 
     val (markdownFiles, setMarkdownFiles) = remember { mutableStateOf<List<String>>(emptyList()) }
     val (selectedFile, setSelectedFile) = remember { mutableStateOf<String?>(null) }
     val (markdownContent, setMarkdownContent) = remember { mutableStateOf<String?>(null) }
     val (isLoading, setIsLoading) = remember { mutableStateOf(false) }
     val (errorMessage, setErrorMessage) = remember { mutableStateOf<String?>(null) }
+
+    // Android 17 LNP: gate all local-network (192.168.10.9:3002) access behind the
+    // ACCESS_LOCAL_NETWORK permission. On denial we surface a clear message.
+    val lnpRequester = rememberLocalNetworkPermissionRequester(
+        onDenied = {
+            setIsLoading(false)
+            setErrorMessage(context.getString(R.string.lan_permission_denied))
+        }
+    )
 
     val configuration = LocalConfiguration.current
     val screenWidth = configuration.screenWidthDp.dp

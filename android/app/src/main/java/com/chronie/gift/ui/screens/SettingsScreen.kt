@@ -83,7 +83,8 @@ fun SettingsScreen(
             )
         }
     ) { paddingValues ->
-        BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+        BoxWithConstraints(modifier = Modifier.fillMaxSize())
+        {
             val isWideScreen = maxWidth >= 600.dp
 
             // On large screens the settings content is capped to 80% width and centered so it
