@@ -98,7 +98,7 @@ private val WHEEL_COLORS: List<Pair<Color, Color>> = listOf(
 )
 
 /**
- * The "今天吃什么" tab: a weighted spinning wheel.
+ * The "What to eat" tab: a weighted spinning wheel.
  *
  * Ported from `flutter_app/lib/pages/food_page.dart`. The Flutter version kept
  * its food management in a dialog opened from a floating button on this page;

@@ -48,7 +48,7 @@ data object AnswersKey : TabNavKey {
     override val tabId: String get() = TabIds.ANSWERS
 }
 
-/** The "今天吃什么" wheel, third of the four tabs. */
+/** The "What to eat" wheel, third of the four tabs. */
 @Serializable
 data object FoodKey : TabNavKey {
     override val tabId: String get() = TabIds.FOOD
@@ -63,7 +63,7 @@ data object SettingsKey : TabNavKey {
 @Serializable
 data object LicensesKey : GiftNavKey
 
-/** Food management for the "今天吃什么" wheel, pushed on top of [SettingsKey]. */
+/** Food management for the "What to eat" wheel, pushed on top of [SettingsKey]. */
 @Serializable
 data object FoodSettingsKey : GiftNavKey
 

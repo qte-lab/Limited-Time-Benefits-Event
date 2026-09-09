@@ -48,6 +48,7 @@ import androidx.navigation3.ui.NavDisplay
 import com.chronie.gift.data.ThemeManager
 import com.chronie.gift.data.TabManager
 import com.chronie.gift.data.UpdateChecker
+import com.chronie.gift.data.LanguageManager
 import com.chronie.gift.ui.components.FloatingBottomBar
 import com.chronie.gift.ui.components.FloatingBottomBarItem
 import com.chronie.gift.ui.components.FloatingBottomBarMode
@@ -77,6 +78,7 @@ import com.chronie.gift.ui.screens.SettingsScreen
 import top.yukonga.miuix.kmp.theme.ColorSchemeMode
 import top.yukonga.miuix.kmp.theme.ThemeController
 import com.chronie.gift.ui.theme.GiftTheme
+import com.chronie.gift.ui.theme.LanguageController
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -155,7 +157,26 @@ fun GiftApp() {
         currentThemeMode = colorSchemeMode
         themeManager.saveTheme(newThemeMode)
     }
-    
+
+    // Language management
+    val languageManager = remember { LanguageManager(context) }
+    val savedLanguage = languageManager.getSavedLanguage()
+
+    val languageController = remember {
+        LanguageController(savedLanguage)
+    }
+
+    // Update language callback
+    val updateLanguageCode = { newLanguageCode: String? ->
+        languageController.languageCode = newLanguageCode
+        if (newLanguageCode == null) {
+            languageManager.clearLanguage()
+        } else {
+            languageManager.saveLanguage(newLanguageCode)
+        }
+        languageManager.applyLanguage(newLanguageCode)
+    }
+
     // Update check related states
     var showUpdateDialog by remember { mutableStateOf(false) }
     var latestVersion by remember { mutableStateOf("") }
@@ -257,7 +278,7 @@ fun GiftApp() {
     val themeController = remember(currentThemeMode) {
         ThemeController(currentThemeMode)
     }
-    GiftTheme(controller = themeController) {
+    GiftTheme(controller = themeController, languageController = languageController) {
         val backdrop = rememberLayerBackdrop()
 
         BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
@@ -527,6 +548,8 @@ fun GiftApp() {
                                 entry<SettingsKey> {
                                     SettingsScreen(
                                         onThemeUpdated = updateThemeMode,
+                                        onLanguageUpdated = updateLanguageCode,
+                                        currentLanguageCode = languageController.languageCode,
                                         onCheckUpdate = {
                                             lnpRequester.ensure { scope.launch { checkForUpdates() } }
                                         },

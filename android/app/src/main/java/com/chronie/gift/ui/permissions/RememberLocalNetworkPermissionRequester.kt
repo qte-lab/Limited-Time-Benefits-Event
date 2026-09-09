@@ -1,14 +1,40 @@
 package com.chronie.gift.ui.permissions
 
+import android.content.Context
+import android.content.ContextWrapper
+import androidx.activity.compose.LocalActivityResultRegistryOwner
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.result.ActivityResultRegistryOwner
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.platform.LocalContext
 import com.chronie.gift.data.LocalNetworkPermission
+
+/**
+ * Walk up the ContextWrapper chain to find the host Activity, which is the
+ * ActivityResultRegistryOwner.
+ *
+ * This is needed because `rememberLauncherForActivityResult` reads
+ * [LocalActivityResultRegistryOwner], which is normally supplied by
+ * `ComponentActivity.setContent`. Inside Navigation3 `NavDisplay` entries that
+ * provider is not always inherited, so we derive it from [LocalContext] (which
+ * still resolves to the host Activity, even when wrapped by a configuration
+ * context such as the one created for in-app language switching) as a fallback.
+ */
+private fun Context.findActivityResultRegistryOwner(): ActivityResultRegistryOwner? {
+    var ctx: Context? = this
+    while (ctx != null) {
+        if (ctx is ActivityResultRegistryOwner) return ctx
+        ctx = (ctx as? ContextWrapper)?.baseContext
+    }
+    return null
+}
 
 /**
  * Requester returned by [rememberLocalNetworkPermissionRequester].
@@ -45,15 +71,27 @@ fun rememberLocalNetworkPermissionRequester(
     // Stable holder for the pending grant action; read fresh inside the callback.
     val pendingGranted = remember { mutableStateOf<(() -> Unit)?>(null) }
 
-    val launcher = rememberLauncherForActivityResult(
-        ActivityResultContracts.RequestPermission()
-    ) { granted ->
-        val action = pendingGranted.value
-        pendingGranted.value = null
-        if (granted) {
-            action?.invoke()
-        } else {
-            currentOnDenied()
+    // `rememberLauncherForActivityResult` requires LocalActivityResultRegistryOwner.
+    // Prefer the inherited value (supplied by ComponentActivity.setContent); fall back to
+    // the host Activity resolved from LocalContext so the launcher can always be created,
+    // even inside NavDisplay entries where the CompositionLocal is unavailable.
+    val owner = LocalActivityResultRegistryOwner.current
+        ?: context.findActivityResultRegistryOwner()
+
+    var launcher: ActivityResultLauncher<String>? = null
+    if (owner != null) {
+        CompositionLocalProvider(LocalActivityResultRegistryOwner provides owner) {
+            launcher = rememberLauncherForActivityResult(
+                ActivityResultContracts.RequestPermission()
+            ) { granted ->
+                val action = pendingGranted.value
+                pendingGranted.value = null
+                if (granted) {
+                    action?.invoke()
+                } else {
+                    currentOnDenied()
+                }
+            }
         }
     }
 
@@ -62,9 +100,13 @@ fun rememberLocalNetworkPermissionRequester(
             override fun ensure(onGranted: () -> Unit) {
                 if (LocalNetworkPermission.isGranted(context)) {
                     onGranted()
-                } else {
+                } else if (launcher != null) {
                     pendingGranted.value = onGranted
                     launcher.launch(LocalNetworkPermission.ACCESS_LOCAL_NETWORK)
+                } else {
+                    // No registry owner available (e.g. a pure Preview with no host
+                    // Activity): the permission cannot be requested, so treat it as denied.
+                    currentOnDenied()
                 }
             }
         }

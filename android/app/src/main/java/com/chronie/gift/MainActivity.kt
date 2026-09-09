@@ -2,6 +2,7 @@ package com.chronie.gift
 
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.content.res.Configuration
 import android.net.Uri
 import android.os.Bundle
 import android.util.Log
@@ -14,6 +15,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.lifecycleScope
 import com.chronie.gift.data.GpcOAuthManager
+import com.chronie.gift.data.LanguageManager
 import com.chronie.gift.data.LocalNetworkPermission
 import com.chronie.gift.ui.GiftApp
 import com.chronie.gift.ui.theme.GiftTheme
@@ -33,6 +35,11 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+
+        // Load saved language setting (null means follow system language)
+        val languageManager = LanguageManager(this)
+        val savedLanguage = languageManager.getSavedLanguage()
+        languageManager.applyLanguage(savedLanguage)
 
         // Android 17 (API 37) Local Network Protection (LNP): request the local
         // network permission up front so the LAN event server (192.168.10.9:3002)
@@ -60,6 +67,16 @@ class MainActivity : ComponentActivity() {
         super.onResume()
         // Pick up a grant made after install / from settings without restarting.
         requestLanPermissionIfNeeded()
+    }
+
+    // Handle configuration changes to ensure language setting is applied
+    override fun onConfigurationChanged(newConfig: Configuration) {
+        super.onConfigurationChanged(newConfig)
+
+        // Reapply language setting
+        val languageManager = LanguageManager(this)
+        val savedLanguage = languageManager.getSavedLanguage()
+        languageManager.applyLanguage(savedLanguage)
     }
 
     /**

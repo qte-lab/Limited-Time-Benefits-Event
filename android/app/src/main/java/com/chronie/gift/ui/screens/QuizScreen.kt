@@ -554,7 +554,7 @@ private fun CenterMessage(text: String, onRetry: (() -> Unit)? = null) {
 }
 
 /**
- * Full-width "已完成本期答题" header. Shows the period and the reward total.
+ * Full-width "Completed this period quiz" header. Shows the period and the reward total.
  * When the server returned the submission, the per-question answers and
  * grading are rendered further down by [QuestionCard].
  */

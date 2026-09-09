@@ -138,7 +138,7 @@ func (qs *QuizStore) saveSubmissions() {
 }
 
 // loadQuiz reads the current question set and its period identifier. The period
-// is what makes "分期" (quiz issues) work: deploying a quiz.json with a new
+// is what makes "Periodic" (quiz issues) work: deploying a quiz.json with a new
 // period lets every user answer again for that new issue.
 func (qs *QuizStore) loadQuiz() (string, []Question, error) {
 	data, err := os.ReadFile(qs.quizPath)
@@ -178,12 +178,12 @@ func (qs *QuizStore) publicQuestions() ([]QuestionPublic, error) {
 func (qs *QuizStore) questionsHandler(w http.ResponseWriter, r *http.Request) {
 	period, _, err := qs.loadQuiz()
 	if err != nil {
-		sendError(w, http.StatusInternalServerError, "读取题目失败")
+		sendError(w, http.StatusInternalServerError, "Failed to load questions: "+err.Error())
 		return
 	}
 	pub, err := qs.publicQuestions()
 	if err != nil {
-		sendError(w, http.StatusInternalServerError, "读取题目失败")
+		sendError(w, http.StatusInternalServerError, "Failed to load public questions: "+err.Error())
 		return
 	}
 	sendJSON(w, http.StatusOK, map[string]interface{}{"success": true, "period": period, "data": pub})
@@ -196,7 +196,7 @@ func (qs *QuizStore) gpcConfigHandler(w http.ResponseWriter, r *http.Request) {
 	creds, err := qs.gpc.ensureOAuthClient()
 	if err != nil {
 		log.Println("[gpc-config] ensureOAuthClient error:", err)
-		sendError(w, http.StatusInternalServerError, "获取 GPC OAuth 配置失败: "+err.Error())
+		sendError(w, http.StatusInternalServerError, "Failed to get GPC OAuth configuration: "+err.Error())
 		return
 	}
 	log.Println("[gpc-config] client:", creds.ClientID)
@@ -216,21 +216,21 @@ func (qs *QuizStore) gpcConfigHandler(w http.ResponseWriter, r *http.Request) {
 func (qs *QuizStore) submitHandler(w http.ResponseWriter, r *http.Request) {
 	var req submitRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		sendError(w, http.StatusBadRequest, "请求体解析失败")
+		sendError(w, http.StatusBadRequest, "Failed to parse request body: "+err.Error())
 		return
 	}
 	if req.Token == "" {
-		sendError(w, http.StatusUnauthorized, "请先授权金猪币账号")
+		sendError(w, http.StatusUnauthorized, "Please authorize your GPC account first")
 		return
 	}
 	userID, err := qs.gpc.VerifyToken(req.Token)
 	if err != nil {
-		sendError(w, http.StatusUnauthorized, "金猪币账号校验失败: "+err.Error())
+		sendError(w, http.StatusUnauthorized, "Failed to verify GPC account: "+err.Error())
 		return
 	}
 	period, questions, err := qs.loadQuiz()
 	if err != nil {
-		sendError(w, http.StatusInternalServerError, "读取题目失败")
+		sendError(w, http.StatusInternalServerError, "Failed to load questions: "+err.Error())
 		return
 	}
 	ansMap := map[string]interface{}{}
@@ -251,7 +251,7 @@ func (qs *QuizStore) submitHandler(w http.ResponseWriter, r *http.Request) {
 				"alreadySubmitted": true,
 				"period":           period,
 				"submission":       rec,
-				"message":          "您已提交过本期问卷，无法重复提交",
+				"message":          "You have already submitted this period's quiz, cannot submit again",
 			})
 			return
 		}
@@ -281,7 +281,7 @@ func (qs *QuizStore) submitHandler(w http.ResponseWriter, r *http.Request) {
 			results = append(results, qres{ID: q.ID, Correct: true, AlreadyClaimed: true})
 			continue
 		}
-		if err := qs.gpc.MintCoins(userID, q.Reward, "答题奖励 "+q.ID); err != nil {
+		if err := qs.gpc.MintCoins(userID, q.Reward, "Quiz reward "+q.ID); err != nil {
 			results = append(results, qres{ID: q.ID, Correct: true})
 			continue
 		}
@@ -320,17 +320,17 @@ func (qs *QuizStore) submitHandler(w http.ResponseWriter, r *http.Request) {
 func (qs *QuizStore) statusHandler(w http.ResponseWriter, r *http.Request) {
 	token := r.URL.Query().Get("token")
 	if token == "" {
-		sendError(w, http.StatusUnauthorized, "请先授权金猪币账号")
+		sendError(w, http.StatusUnauthorized, "Please authorize your GPC account first")
 		return
 	}
 	userID, err := qs.gpc.VerifyToken(token)
 	if err != nil {
-		sendError(w, http.StatusUnauthorized, "金猪币账号校验失败: "+err.Error())
+		sendError(w, http.StatusUnauthorized, "Failed to verify GPC account: "+err.Error())
 		return
 	}
 	period, _, err := qs.loadQuiz()
 	if err != nil {
-		sendError(w, http.StatusInternalServerError, "读取题目失败")
+		sendError(w, http.StatusInternalServerError, "Failed to load questions: "+err.Error())
 		return
 	}
 	qs.mu.Lock()

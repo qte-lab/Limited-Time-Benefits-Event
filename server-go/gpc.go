@@ -112,7 +112,7 @@ func (g *gpcClient) adminLogin() (string, error) {
 		return "", err
 	}
 	if !r.Success {
-		return "", fmt.Errorf("GPC 管理员登录失败: %s", r.Message)
+		return "", fmt.Errorf("GPC admin login failed: %s", r.Message)
 	}
 	var d struct {
 		Token string `json:"token"`
@@ -163,7 +163,7 @@ func (g *gpcClient) ensureOAuthClient() (OAuthClientCreds, error) {
 	log.Println("[gpc] registering OAuth client on GPC...")
 	tok, err := g.getAdminToken()
 	if err != nil {
-		return OAuthClientCreds{}, fmt.Errorf("获取管理员令牌失败: %w", err)
+		return OAuthClientCreds{}, fmt.Errorf("failed to get admin token: %w", err)
 	}
 	r, err := g.doJSON(http.MethodPost, "/admin/oauth-client", map[string]interface{}{
 		"name":         g.cfg.OAuthClientName,
@@ -171,17 +171,17 @@ func (g *gpcClient) ensureOAuthClient() (OAuthClientCreds, error) {
 		"scopes":       []string{g.cfg.OAuthScope},
 	}, tok)
 	if err != nil {
-		return OAuthClientCreds{}, fmt.Errorf("调用 GPC 创建客户端失败: %w", err)
+		return OAuthClientCreds{}, fmt.Errorf("failed to call GPC to create client: %w", err)
 	}
 	if !r.Success {
-		return OAuthClientCreds{}, fmt.Errorf("创建 GPC OAuth 客户端失败: %s", r.Message)
+		return OAuthClientCreds{}, fmt.Errorf("failed to create GPC OAuth client: %s", r.Message)
 	}
 	var d struct {
 		ClientID     string `json:"clientId"`
 		ClientSecret string `json:"clientSecret"`
 	}
 	if err := json.Unmarshal(r.Data, &d); err != nil {
-		return OAuthClientCreds{}, fmt.Errorf("解析 GPC 客户端响应失败: %w", err)
+		return OAuthClientCreds{}, fmt.Errorf("failed to parse GPC client response: %w", err)
 	}
 	c := OAuthClientCreds{ClientID: d.ClientID, ClientSecret: d.ClientSecret}
 	g.oauthCreds = c
@@ -192,7 +192,7 @@ func (g *gpcClient) ensureOAuthClient() (OAuthClientCreds, error) {
 	return c, nil
 }
 
-// MintCoins credits reward GPC to a user via the GPC admin "币种发放" endpoint.
+// MintCoins credits reward GPC to a user via the GPC admin "coin issue" endpoint.
 func (g *gpcClient) MintCoins(userID string, amount int, note string) error {
 	tok, err := g.getAdminToken()
 	if err != nil {
@@ -207,7 +207,7 @@ func (g *gpcClient) MintCoins(userID string, amount int, note string) error {
 		return err
 	}
 	if !r.Success {
-		return fmt.Errorf("发放失败: %s", r.Message)
+		return fmt.Errorf("failed to issue coins: %s", r.Message)
 	}
 	return nil
 }
@@ -219,7 +219,7 @@ func (g *gpcClient) VerifyToken(token string) (string, error) {
 		return "", err
 	}
 	if !r.Success {
-		return "", fmt.Errorf("token 校验失败: %s", r.Message)
+		return "", fmt.Errorf("failed to verify token: %s", r.Message)
 	}
 	var d struct {
 		ID string `json:"id"`

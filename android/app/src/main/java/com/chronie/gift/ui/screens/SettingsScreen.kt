@@ -41,6 +41,7 @@ import top.yukonga.miuix.kmp.icon.extended.Background
 import top.yukonga.miuix.kmp.icon.extended.ListView
 import top.yukonga.miuix.kmp.icon.extended.Update
 import top.yukonga.miuix.kmp.icon.extended.SelectAll
+import top.yukonga.miuix.kmp.icon.extended.Translate
 import top.yukonga.miuix.kmp.preference.OverlayDropdownPreference
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
@@ -48,6 +49,8 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme
 @Composable
 fun SettingsScreen(
     onThemeUpdated: (String) -> Unit = {},
+    onLanguageUpdated: (String?) -> Unit = {},
+    currentLanguageCode: String? = null,
     onCheckUpdate: () -> Unit = {},
     isCheckingUpdate: Boolean = false,
     onNavigateToLicenses: () -> Unit = {},
@@ -73,7 +76,27 @@ fun SettingsScreen(
     var selectedThemeIndex by remember {
         mutableIntStateOf(initialThemeIndex)
     }
-    
+
+    val languageOptions = listOf(
+        stringResource(id = R.string.language_follow_system),
+        stringResource(id = R.string.language_zh_cn),
+        stringResource(id = R.string.language_zh_tw),
+        stringResource(id = R.string.language_en),
+        stringResource(id = R.string.language_ja),
+    )
+
+    val languageCodes = listOf(null, "zh-CN", "zh-TW", "en", "ja")
+
+    val initialLanguageIndex = if (currentLanguageCode == null) {
+        0
+    } else {
+        languageCodes.indexOf(currentLanguageCode).takeIf { it >= 0 } ?: 0
+    }
+
+    var selectedLanguageIndex by remember {
+        mutableIntStateOf(initialLanguageIndex)
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -112,6 +135,25 @@ fun SettingsScreen(
                 Card(
                     modifier = Modifier.padding(bottom = 16.dp)
                 ) {
+                    OverlayDropdownPreference(
+                        title = stringResource(id = R.string.language_settings),
+                        items = languageOptions,
+                        selectedIndex = selectedLanguageIndex,
+                        startAction = {
+                            Icon(
+                                imageVector = MiuixIcons.Translate,
+                                contentDescription = null,
+                                tint = MiuixTheme.colorScheme.onSurfaceVariantActions,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        },
+                        onSelectedIndexChange = { index ->
+                            selectedLanguageIndex = index
+                            val languageCode = languageCodes[index]
+                            onLanguageUpdated(languageCode)
+                            Toast.makeText(context, context.getString(R.string.language_switched, languageOptions[index]), Toast.LENGTH_SHORT).show()
+                        }
+                    )
                     OverlayDropdownPreference(
                         title = stringResource(id = R.string.theme_settings),
                         items = themeOptions,
