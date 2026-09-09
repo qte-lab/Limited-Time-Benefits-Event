@@ -134,4 +134,14 @@
     <string name="food_budget_label">Budget (¥)</string>
     <string name="food_price_helper">Weight = budget ÷ price, max %1$s</string>
     <string name="food_weight_invalid">Please enter a weight greater than 0</string>
+
+    <!-- Server status monitor (in-app WebView) -->
+    <string name="server_status_section">Status Monitor</string>
+    <string name="server_status_entry">Server Temperature/Performance Status</string>
+    <string name="server_status_title">Server Status</string>
+    <string name="server_status_refresh">Refresh</string>
+    <string name="server_status_open_external">Open in Browser</string>
+    <string name="server_status_loading">Loading server status…</string>
+    <string name="server_status_error">Could not load the page. Make sure the server is reachable.</string>
+    <string name="server_status_retry">Retry</string>
 </resources>

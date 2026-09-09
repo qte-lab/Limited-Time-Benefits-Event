@@ -7,6 +7,7 @@ import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import java.util.Locale
 
 class UpdateChecker {
     private val client by lazy {
@@ -30,7 +31,7 @@ class UpdateChecker {
         val changelog: Map<String, String>?
     )
 
-    suspend fun checkForUpdates(currentVersion: String): UpdateInfo? {
+    suspend fun checkForUpdates(currentVersion: String, languageCode: String? = null): UpdateInfo? {
         return try {
             val apiBaseUrl = "http://192.168.10.9:3002"
             val response = client.get("$apiBaseUrl/api/download_apk").body<UpdateResponse>()
@@ -38,10 +39,9 @@ class UpdateChecker {
             if (response.success && response.versionName != null) {
                 val latestVersion = response.versionName
                 if (isNewVersionAvailable(currentVersion, latestVersion)) {
-                    // App is single-language (Chinese); pick the matching changelog, fall back to English.
-                    val changelogContent = response.changelog?.get("zh-cn")
-                        ?: response.changelog?.get("en")
-                        ?: ""
+                    // Pick the changelog in the user's language; fall back to en, then zh-cn,
+                    // then whatever languages the server returned.
+                    val changelogContent = resolveChangelog(response.changelog, languageCode)
                     
                     return UpdateInfo(
                         versionCode = response.versionCode ?: 0,
@@ -56,6 +56,53 @@ class UpdateChecker {
         } catch (e: Exception) {
             e.printStackTrace()
             null
+        }
+    }
+
+    /**
+     * Maps the app's language setting to a prioritized list of changelog keys and
+     * returns the first one the server actually provided.
+     *
+     * [languageCode] is one of `null` (follow system), "zh-CN", "zh-TW", "en", "ja".
+     * The changelog JSON uses lower-case region keys ("zh-cn", "zh-tw", "en", "ja").
+     */
+    private fun resolveChangelog(changelog: Map<String, String>?, languageCode: String?): String {
+        if (changelog.isNullOrEmpty()) return ""
+
+        val primary = when (languageCode) {
+            "zh-CN" -> "zh-cn"
+            "zh-TW" -> "zh-tw"
+            "en" -> "en"
+            "ja" -> "ja"
+            else -> systemChangelogKey()
+        }
+
+        // Priority: requested language -> en -> zh-cn -> any other available language.
+        val candidates = buildList {
+            add(primary)
+            if (primary != "en") add("en")
+            if (primary != "zh-cn") add("zh-cn")
+            addAll(changelog.keys)
+        }.distinct()
+
+        for (key in candidates) {
+            changelog[key]?.let { return it }
+        }
+        return ""
+    }
+
+    /**
+     * Resolves a changelog key for the "follow system language" case, based on the
+     * currently active default [Locale] (which [LanguageManager] already updated).
+     */
+    private fun systemChangelogKey(): String {
+        val locale = Locale.getDefault()
+        return when {
+            locale.language == "zh" &&
+                (locale.country.equals("TW", ignoreCase = true) || locale.country.equals("HK", ignoreCase = true)) -> "zh-tw"
+            locale.language == "zh" -> "zh-cn"
+            locale.language == "ja" -> "ja"
+            else -> "en"
         }
     }
 

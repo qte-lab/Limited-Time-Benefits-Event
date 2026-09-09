@@ -1,13 +1,10 @@
 package com.chronie.gift.ui.screens
 
-import android.app.Activity
 import android.content.Intent
 import android.graphics.Bitmap
-import android.os.Build
-import android.os.Handler
-import android.os.Looper
-import android.view.PixelCopy
 import android.widget.Toast
+import androidx.compose.ui.platform.LocalView
+import androidx.core.view.drawToBitmap
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.EaseOutElastic
 import androidx.compose.animation.core.tween
@@ -152,72 +149,47 @@ fun FoodScreen() {
     }
 
     /**
-     * Captures the current page and fires the system share sheet so the user can
-     * hand the dish they drew to any app. The screenshot is taken with
-     * [PixelCopy] (API 26+), which reliably captures a hardware-accelerated
-     * Compose window — `View.draw()` onto a software bitmap often yields a blank
-     * image because Compose renders into a `RenderNode`. The resulting PNG is
-     * written to the app cache, which the app's FileProvider already exposes
-     * (see `file_paths.xml`, `cache-path`), so no manifest change is needed.
+     * Fires the system share sheet so the user can hand the dish they drew to any
+     * app. The screenshot is taken with `View.drawToBitmap()` on the root Compose
+     * view — reliable for hardware-accelerated Compose content. The previous
+     * `PixelCopy` approach captured the whole window and failed on non-fullscreen
+     * apps (its window surface is smaller than the decor view, so PixelCopy always
+     * errored), which is why sharing always reported "share failed". The PNG is
+     * written to the app cache, already exposed by the app's FileProvider
+     * (see `file_paths.xml`, `cache-path`).
      */
+    val localView = LocalView.current
     val share: () -> Unit = {
-        val activity = context as? Activity
-        val decor = activity?.window?.decorView
-        val w = decor?.width ?: 0
-        val h = decor?.height ?: 0
-        if (activity != null && decor != null && w > 0 && h > 0) {
-            val bitmap = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
-
-            val onCaptured: (Boolean) -> Unit = { success ->
-                if (success) {
-                    scope.launch {
-                        val ok = runCatching {
-                            val file = File(context.cacheDir, "today_food_share.png")
-                            withContext(Dispatchers.IO) {
-                                file.outputStream().use { out ->
-                                    if (!bitmap.compress(Bitmap.CompressFormat.PNG, 100, out)) {
-                                        throw IllegalStateException("PNG 压缩失败")
-                                    }
-                                }
-                            }
-                            val uri = FileProvider.getUriForFile(
-                                context,
-                                "${context.packageName}.fileprovider",
-                                file
-                            )
-                            val intent = Intent(Intent.ACTION_SEND).apply {
-                                type = "image/png"
-                                putExtra(Intent.EXTRA_STREAM, uri)
-                                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                            }
-                            withContext(Dispatchers.Main) {
-                                context.startActivity(Intent.createChooser(intent, shareTitle))
-                            }
-                        }.isSuccess
-                        bitmap.recycle()
-                        if (!ok) {
-                            withContext(Dispatchers.Main) {
-                                Toast.makeText(context, shareFailedText, Toast.LENGTH_SHORT).show()
-                            }
+        scope.launch {
+            try {
+                val bitmap = localView.drawToBitmap()
+                val file = File(context.cacheDir, "today_food_share.png")
+                withContext(Dispatchers.IO) {
+                    file.outputStream().use { out ->
+                        if (!bitmap.compress(Bitmap.CompressFormat.PNG, 100, out)) {
+                            throw IllegalStateException("PNG 压缩失败")
                         }
                     }
-                } else {
-                    bitmap.recycle()
+                }
+                val uri = FileProvider.getUriForFile(
+                    context,
+                    "${context.packageName}.fileprovider",
+                    file
+                )
+                val intent = Intent(Intent.ACTION_SEND).apply {
+                    type = "image/png"
+                    putExtra(Intent.EXTRA_STREAM, uri)
+                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                }
+                withContext(Dispatchers.Main) {
+                    context.startActivity(Intent.createChooser(intent, shareTitle))
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                withContext(Dispatchers.Main) {
                     Toast.makeText(context, shareFailedText, Toast.LENGTH_SHORT).show()
                 }
             }
-
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                PixelCopy.request(activity.window, bitmap, { result ->
-                    onCaptured(result == PixelCopy.SUCCESS)
-                }, Handler(Looper.getMainLooper()))
-            } else {
-                runCatching { decor.draw(android.graphics.Canvas(bitmap)) }
-                    .onSuccess { onCaptured(true) }
-                    .onFailure { onCaptured(false) }
-            }
-        } else {
-            Toast.makeText(context, shareFailedText, Toast.LENGTH_SHORT).show()
         }
     }
 

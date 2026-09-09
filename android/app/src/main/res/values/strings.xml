@@ -134,4 +134,14 @@
     <string name="food_budget_label">预算（元）</string>
     <string name="food_price_helper">权重 = 预算 ÷ 价格，最高 %1$s</string>
     <string name="food_weight_invalid">请输入大于 0 的权重</string>
+
+    <!-- Server status monitor (in-app WebView) -->
+    <string name="server_status_section">状态监控</string>
+    <string name="server_status_entry">服务器温度/性能状态</string>
+    <string name="server_status_title">服务器状态</string>
+    <string name="server_status_refresh">刷新</string>
+    <string name="server_status_open_external">在浏览器打开</string>
+    <string name="server_status_loading">正在加载服务器状态…</string>
+    <string name="server_status_error">无法加载页面，请确认服务器可访问</string>
+    <string name="server_status_retry">重试</string>
 </resources>

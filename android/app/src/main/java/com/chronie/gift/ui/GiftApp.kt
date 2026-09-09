@@ -64,6 +64,7 @@ import com.chronie.gift.ui.permissions.rememberLocalNetworkPermissionRequester
 import com.chronie.gift.ui.navigation.HomeKey
 import com.chronie.gift.ui.navigation.LicensesKey
 import com.chronie.gift.ui.navigation.SettingsKey
+import com.chronie.gift.ui.navigation.ServerStatusKey
 import com.chronie.gift.ui.navigation.TAB_KEYS
 import com.chronie.gift.ui.navigation.TabNavKey
 import com.chronie.gift.ui.navigation.rememberGiftNavigator
@@ -75,6 +76,7 @@ import com.chronie.gift.ui.screens.QuizScreen
 import com.chronie.gift.R
 import com.chronie.gift.ui.screens.LicensesScreen
 import com.chronie.gift.ui.screens.SettingsScreen
+import com.chronie.gift.ui.screens.ServerStatusScreen
 import top.yukonga.miuix.kmp.theme.ColorSchemeMode
 import top.yukonga.miuix.kmp.theme.ThemeController
 import com.chronie.gift.ui.theme.GiftTheme
@@ -126,6 +128,13 @@ fun GiftApp() {
     // the bottom bar stays in sync when the user navigates back with the system gesture.
     val selectedTab: TabNavKey by remember {
         derivedStateOf { backStack.lastOrNull { it is TabNavKey } as? TabNavKey ?: HomeKey }
+    }
+
+    // The floating nav bar (bottom on phones, top on wide screens) is only shown on the four root
+    // tabs. Secondary pages pushed on top of them (licenses, food settings, server status, ...) hide
+    // it so the in-page content gets the full screen.
+    val showNavBar by remember {
+        derivedStateOf { backStack.lastOrNull() is TabNavKey }
     }
 
     // Persist whichever tab is currently on top so the next launch restores it
@@ -200,7 +209,7 @@ fun GiftApp() {
         try {
             val updateChecker = UpdateChecker()
             val updateInfo = withContext(Dispatchers.IO) {
-                updateChecker.checkForUpdates(currentVersion)
+                updateChecker.checkForUpdates(currentVersion, languageController.languageCode)
             }
             
             if (updateInfo != null) {
@@ -309,8 +318,8 @@ fun GiftApp() {
                                 .using(SizeTransform(clip = false))
                             },
                             label = "bottomNavTransition",
-                        ) { wide ->
-                            if (!wide) {
+            ) { wide ->
+                if (!wide && showNavBar) {
                                 Box(
                                     modifier = Modifier
                                         .fillMaxWidth()
@@ -414,8 +423,8 @@ fun GiftApp() {
                                 .using(SizeTransform(clip = false))
                             },
                             label = "topNavTransition",
-                        ) { wide ->
-                            if (wide) {
+            ) { wide ->
+                if (wide && showNavBar) {
                                 Box(
                                     modifier = Modifier
                                         .fillMaxWidth()
@@ -559,6 +568,9 @@ fun GiftApp() {
                                         },
                                         onNavigateToFoodSettings = {
                                             navigator.push(FoodSettingsKey)
+                                        },
+                                        onNavigateToServerStatus = {
+                                            navigator.push(ServerStatusKey)
                                         }
                                     )
                                 }
@@ -571,6 +583,13 @@ fun GiftApp() {
                                 }
                                 entry<FoodSettingsKey> {
                                     FoodSettingsScreen(
+                                        onBack = {
+                                            navigator.pop()
+                                        }
+                                    )
+                                }
+                                entry<ServerStatusKey> {
+                                    ServerStatusScreen(
                                         onBack = {
                                             navigator.pop()
                                         }

@@ -42,6 +42,7 @@ import top.yukonga.miuix.kmp.icon.extended.ListView
 import top.yukonga.miuix.kmp.icon.extended.Update
 import top.yukonga.miuix.kmp.icon.extended.SelectAll
 import top.yukonga.miuix.kmp.icon.extended.Translate
+import top.yukonga.miuix.kmp.icon.extended.SearchDevice
 import top.yukonga.miuix.kmp.preference.OverlayDropdownPreference
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
@@ -54,7 +55,8 @@ fun SettingsScreen(
     onCheckUpdate: () -> Unit = {},
     isCheckingUpdate: Boolean = false,
     onNavigateToLicenses: () -> Unit = {},
-    onNavigateToFoodSettings: () -> Unit = {}
+    onNavigateToFoodSettings: () -> Unit = {},
+    onNavigateToServerStatus: () -> Unit = {}
 ) {
     val context = LocalContext.current
     
@@ -239,6 +241,45 @@ fun SettingsScreen(
                             text = if (isCheckingUpdate) stringResource(id = R.string.update_checking) else stringResource(id = R.string.update_check_manually),
                             style = MiuixTheme.textStyles.body1,
                             color = MiuixTheme.colorScheme.primary
+                        )
+                    }
+                }
+
+                SmallTitle(text = stringResource(id = R.string.server_status_section))
+
+                Card(
+                    modifier = Modifier.padding(bottom = 16.dp),
+                    pressFeedbackType = top.yukonga.miuix.kmp.utils.PressFeedbackType.Sink,
+                    showIndication = true,
+                    onClick = onNavigateToServerStatus,
+                    insideMargin = androidx.compose.foundation.layout.PaddingValues(16.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = MiuixIcons.SearchDevice,
+                                contentDescription = null,
+                                tint = MiuixTheme.colorScheme.onSurfaceVariantActions,
+                                modifier = Modifier.size(24.dp)
+                            )
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Text(
+                                text = stringResource(id = R.string.server_status_entry),
+                                style = MiuixTheme.textStyles.body1,
+                                color = MiuixTheme.colorScheme.onSurface
+                            )
+                        }
+                        Icon(
+                            imageVector = MiuixIcons.ChevronForward,
+                            contentDescription = null,
+                            tint = MiuixTheme.colorScheme.onSurfaceContainerVariant,
+                            modifier = Modifier.size(20.dp)
                         )
                     }
                 }

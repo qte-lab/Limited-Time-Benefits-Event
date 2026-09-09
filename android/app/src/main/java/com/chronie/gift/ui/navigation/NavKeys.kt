@@ -67,6 +67,10 @@ data object LicensesKey : GiftNavKey
 @Serializable
 data object FoodSettingsKey : GiftNavKey
 
+/** In-app server status monitor (WebView), pushed on top of [SettingsKey]. */
+@Serializable
+data object ServerStatusKey : GiftNavKey
+
 /** Tabs in the order they are rendered by the floating bottom bar. */
 val TAB_KEYS: List<TabNavKey> = listOf(HomeKey, AnswersKey, FoodKey, SettingsKey)
 
