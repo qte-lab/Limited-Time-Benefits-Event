@@ -135,13 +135,70 @@
     <string name="food_price_helper">重み = 予算 ÷ 価格、最大 %1$s</string>
     <string name="food_weight_invalid">0より大きい重みを入力してください</string>
 
-    <!-- Server status monitor (in-app WebView) -->
+    <!-- Server status monitor (native dashboard rendered from /api/snapshot) -->
     <string name="server_status_section">温度・性能監視</string>
     <string name="server_status_entry">サーバー温度/性能ステータス</string>
     <string name="server_status_title">サーバーステータス</string>
     <string name="server_status_refresh">更新</string>
     <string name="server_status_open_external">ブラウザで開く</string>
     <string name="server_status_loading">サーバーステータスを読み込み中…</string>
-    <string name="server_status_error">ページを読み込めませんでした。サーバーにアクセスできるか確認してください</string>
+    <string name="server_status_error">データを読み込めませんでした。サーバーにアクセスできるか確認してください</string>
     <string name="server_status_retry">再試行</string>
+    <string name="server_status_live">ライブ</string>
+    <string name="server_status_offline">オフライン</string>
+    <string name="server_status_label_ip">アドレス</string>
+    <string name="server_status_label_runtime">稼働時間</string>
+    <string name="server_status_empty">監視データがありません</string>
+
+    <!-- Monitor card groups -->
+    <string name="monitor_group_dash">ダッシュボード</string>
+    <string name="monitor_group_cpu">CPU</string>
+    <string name="monitor_group_gpu">GPU</string>
+    <string name="monitor_group_host">ホスト</string>
+    <string name="monitor_group_bat">バッテリー</string>
+    <string name="monitor_group_disk">ディスク</string>
+    <string name="monitor_group_net">ネットワーク</string>
+    <string name="monitor_group_data">通信量</string>
+
+    <!-- Monitor readings -->
+    <string name="monitor_item_hostname">ホスト名</string>
+    <string name="monitor_item_time">時刻</string>
+    <string name="monitor_item_uptime">起動時間</string>
+    <string name="monitor_item_lan_ip">ローカル IP</string>
+    <string name="monitor_item_cpu_load">CPU 使用率</string>
+    <string name="monitor_item_cpu_temp">CPU 温度</string>
+    <string name="monitor_item_cpu_clock">CPU クロック</string>
+    <string name="monitor_item_cpu_power">CPU 消費電力</string>
+    <string name="monitor_item_cpu_voltage">CPU 電圧</string>
+    <string name="monitor_item_gpu_load">GPU 使用率</string>
+    <string name="monitor_item_gpu_temp">GPU 温度</string>
+    <string name="monitor_item_gpu_clock">GPU クロック</string>
+    <string name="monitor_item_gpu_vram">VRAM 使用量</string>
+    <string name="monitor_item_mem_load">メモリ使用量</string>
+    <string name="monitor_item_fps">リアルタイム FPS</string>
+    <string name="monitor_item_bat_percent">バッテリー残量</string>
+    <string name="monitor_item_bat_power">バッテリー電力</string>
+    <string name="monitor_item_bat_voltage">バッテリー電圧</string>
+    <string name="monitor_item_bat_current">バッテリー電流</string>
+    <string name="monitor_item_disk_read">読み取り</string>
+    <string name="monitor_item_disk_write">書き込み</string>
+    <string name="monitor_item_net_up">アップロード</string>
+    <string name="monitor_item_net_down">ダウンロード</string>
+    <string name="monitor_item_data_day_up">本日の送信</string>
+    <string name="monitor_item_data_day_down">本日の受信</string>
+
+    <!-- Weekday names used to localize the server's Chinese clock reading -->
+    <string name="monitor_weekday_mon">月曜</string>
+    <string name="monitor_weekday_tue">火曜</string>
+    <string name="monitor_weekday_wed">水曜</string>
+    <string name="monitor_weekday_thu">木曜</string>
+    <string name="monitor_weekday_fri">金曜</string>
+    <string name="monitor_weekday_sat">土曜</string>
+    <string name="monitor_weekday_sun">日曜</string>
+
+    <!-- Uptime components -->
+    <string name="monitor_uptime_day">%1$d 日</string>
+    <string name="monitor_uptime_hour">%1$d 時間</string>
+    <string name="monitor_uptime_minute">%1$d 分</string>
+    <string name="monitor_uptime_second">%1$d 秒</string>
 </resources>

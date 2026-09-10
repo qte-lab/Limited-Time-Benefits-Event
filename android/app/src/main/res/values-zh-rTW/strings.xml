@@ -135,13 +135,70 @@
     <string name="food_price_helper">權重 = 預算 ÷ 價格，最高 %1$s</string>
     <string name="food_weight_invalid">請輸入大於 0 的權重</string>
 
-    <!-- Server status monitor (in-app WebView) -->
+    <!-- Server status monitor (native dashboard rendered from /api/snapshot) -->
     <string name="server_status_section">狀態監控</string>
     <string name="server_status_entry">伺服器性能/溫度狀態</string>
     <string name="server_status_title">伺服器狀態</string>
     <string name="server_status_refresh">重新整理</string>
     <string name="server_status_open_external">在瀏覽器開啟</string>
     <string name="server_status_loading">正在載入伺服器狀態…</string>
-    <string name="server_status_error">無法載入頁面，請確認伺服器可存取</string>
+    <string name="server_status_error">無法載入資料，請確認伺服器可存取</string>
     <string name="server_status_retry">重試</string>
+    <string name="server_status_live">即時</string>
+    <string name="server_status_offline">已離線</string>
+    <string name="server_status_label_ip">位址</string>
+    <string name="server_status_label_runtime">執行時間</string>
+    <string name="server_status_empty">暫無監控資料</string>
+
+    <!-- Monitor card groups -->
+    <string name="monitor_group_dash">看板</string>
+    <string name="monitor_group_cpu">CPU</string>
+    <string name="monitor_group_gpu">GPU</string>
+    <string name="monitor_group_host">主機</string>
+    <string name="monitor_group_bat">電池</string>
+    <string name="monitor_group_disk">磁碟</string>
+    <string name="monitor_group_net">網路</string>
+    <string name="monitor_group_data">流量統計</string>
+
+    <!-- Monitor readings -->
+    <string name="monitor_item_hostname">主機名稱</string>
+    <string name="monitor_item_time">時間</string>
+    <string name="monitor_item_uptime">已開機</string>
+    <string name="monitor_item_lan_ip">內網 IP</string>
+    <string name="monitor_item_cpu_load">CPU 使用率</string>
+    <string name="monitor_item_cpu_temp">CPU 溫度</string>
+    <string name="monitor_item_cpu_clock">CPU 頻率</string>
+    <string name="monitor_item_cpu_power">CPU 功耗</string>
+    <string name="monitor_item_cpu_voltage">CPU 電壓</string>
+    <string name="monitor_item_gpu_load">GPU 使用率</string>
+    <string name="monitor_item_gpu_temp">GPU 溫度</string>
+    <string name="monitor_item_gpu_clock">GPU 頻率</string>
+    <string name="monitor_item_gpu_vram">顯示記憶體佔用</string>
+    <string name="monitor_item_mem_load">記憶體佔用</string>
+    <string name="monitor_item_fps">即時影格率</string>
+    <string name="monitor_item_bat_percent">電池電量</string>
+    <string name="monitor_item_bat_power">電池功耗</string>
+    <string name="monitor_item_bat_voltage">電池電壓</string>
+    <string name="monitor_item_bat_current">電池電流</string>
+    <string name="monitor_item_disk_read">讀取</string>
+    <string name="monitor_item_disk_write">寫入</string>
+    <string name="monitor_item_net_up">上傳</string>
+    <string name="monitor_item_net_down">下載</string>
+    <string name="monitor_item_data_day_up">今日上傳</string>
+    <string name="monitor_item_data_day_down">今日下載</string>
+
+    <!-- Weekday names used to localize the server's Chinese clock reading -->
+    <string name="monitor_weekday_mon">週一</string>
+    <string name="monitor_weekday_tue">週二</string>
+    <string name="monitor_weekday_wed">週三</string>
+    <string name="monitor_weekday_thu">週四</string>
+    <string name="monitor_weekday_fri">週五</string>
+    <string name="monitor_weekday_sat">週六</string>
+    <string name="monitor_weekday_sun">週日</string>
+
+    <!-- Uptime components -->
+    <string name="monitor_uptime_day">%1$d 天</string>
+    <string name="monitor_uptime_hour">%1$d 時</string>
+    <string name="monitor_uptime_minute">%1$d 分</string>
+    <string name="monitor_uptime_second">%1$d 秒</string>
 </resources>

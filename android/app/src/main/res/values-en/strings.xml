@@ -135,13 +135,70 @@
     <string name="food_price_helper">Weight = budget ÷ price, max %1$s</string>
     <string name="food_weight_invalid">Please enter a weight greater than 0</string>
 
-    <!-- Server status monitor (in-app WebView) -->
+    <!-- Server status monitor (native dashboard rendered from /api/snapshot) -->
     <string name="server_status_section">Status Monitor</string>
     <string name="server_status_entry">Server Temperature/Performance Status</string>
     <string name="server_status_title">Server Status</string>
     <string name="server_status_refresh">Refresh</string>
     <string name="server_status_open_external">Open in Browser</string>
     <string name="server_status_loading">Loading server status…</string>
-    <string name="server_status_error">Could not load the page. Make sure the server is reachable.</string>
+    <string name="server_status_error">Could not load the data. Make sure the server is reachable.</string>
     <string name="server_status_retry">Retry</string>
+    <string name="server_status_live">Live</string>
+    <string name="server_status_offline">Offline</string>
+    <string name="server_status_label_ip">Address</string>
+    <string name="server_status_label_runtime">Runtime</string>
+    <string name="server_status_empty">No monitoring data yet</string>
+
+    <!-- Monitor card groups -->
+    <string name="monitor_group_dash">Dashboard</string>
+    <string name="monitor_group_cpu">CPU</string>
+    <string name="monitor_group_gpu">GPU</string>
+    <string name="monitor_group_host">Host</string>
+    <string name="monitor_group_bat">Battery</string>
+    <string name="monitor_group_disk">Disk</string>
+    <string name="monitor_group_net">Network</string>
+    <string name="monitor_group_data">Data Usage</string>
+
+    <!-- Monitor readings -->
+    <string name="monitor_item_hostname">Hostname</string>
+    <string name="monitor_item_time">Time</string>
+    <string name="monitor_item_uptime">Uptime</string>
+    <string name="monitor_item_lan_ip">LAN IP</string>
+    <string name="monitor_item_cpu_load">CPU Usage</string>
+    <string name="monitor_item_cpu_temp">CPU Temp</string>
+    <string name="monitor_item_cpu_clock">CPU Clock</string>
+    <string name="monitor_item_cpu_power">CPU Power</string>
+    <string name="monitor_item_cpu_voltage">CPU Voltage</string>
+    <string name="monitor_item_gpu_load">GPU Usage</string>
+    <string name="monitor_item_gpu_temp">GPU Temp</string>
+    <string name="monitor_item_gpu_clock">GPU Clock</string>
+    <string name="monitor_item_gpu_vram">VRAM Used</string>
+    <string name="monitor_item_mem_load">Memory Used</string>
+    <string name="monitor_item_fps">Live FPS</string>
+    <string name="monitor_item_bat_percent">Battery Level</string>
+    <string name="monitor_item_bat_power">Battery Power</string>
+    <string name="monitor_item_bat_voltage">Battery Voltage</string>
+    <string name="monitor_item_bat_current">Battery Current</string>
+    <string name="monitor_item_disk_read">Read</string>
+    <string name="monitor_item_disk_write">Write</string>
+    <string name="monitor_item_net_up">Upload</string>
+    <string name="monitor_item_net_down">Download</string>
+    <string name="monitor_item_data_day_up">Today Up</string>
+    <string name="monitor_item_data_day_down">Today Down</string>
+
+    <!-- Weekday names used to localize the server's Chinese clock reading -->
+    <string name="monitor_weekday_mon">Mon</string>
+    <string name="monitor_weekday_tue">Tue</string>
+    <string name="monitor_weekday_wed">Wed</string>
+    <string name="monitor_weekday_thu">Thu</string>
+    <string name="monitor_weekday_fri">Fri</string>
+    <string name="monitor_weekday_sat">Sat</string>
+    <string name="monitor_weekday_sun">Sun</string>
+
+    <!-- Uptime components -->
+    <string name="monitor_uptime_day">%1$dd</string>
+    <string name="monitor_uptime_hour">%1$dh</string>
+    <string name="monitor_uptime_minute">%1$dm</string>
+    <string name="monitor_uptime_second">%1$ds</string>
 </resources>
