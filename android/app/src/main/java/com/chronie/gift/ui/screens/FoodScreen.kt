@@ -1,7 +1,14 @@
 package com.chronie.gift.ui.screens
 
+import android.app.Activity
 import android.content.Intent
 import android.graphics.Bitmap
+import android.os.Build
+import android.os.Handler
+import android.os.Looper
+import android.util.Log
+import android.view.PixelCopy
+import android.view.View
 import android.widget.Toast
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.drawToBitmap
@@ -35,9 +42,14 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.asAndroidBitmap
+import androidx.compose.ui.graphics.layer.GraphicsLayer
+import androidx.compose.ui.graphics.layer.drawLayer
+import androidx.compose.ui.graphics.rememberGraphicsLayer
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.StrokeCap
@@ -52,11 +64,14 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.unit.toIntSize
 import com.chronie.gift.R
 import com.chronie.gift.data.FoodItem
 import com.chronie.gift.data.FoodStore
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 import top.yukonga.miuix.kmp.basic.Button
 import top.yukonga.miuix.kmp.basic.Card
@@ -148,47 +163,111 @@ fun FoodScreen() {
         }
     }
 
-    /**
-     * Fires the system share sheet so the user can hand the dish they drew to any
-     * app. The screenshot is taken with `View.drawToBitmap()` on the root Compose
-     * view — reliable for hardware-accelerated Compose content. The previous
-     * `PixelCopy` approach captured the whole window and failed on non-fullscreen
-     * apps (its window surface is smaller than the decor view, so PixelCopy always
-     * errored), which is why sharing always reported "share failed". The PNG is
-     * written to the app cache, already exposed by the app's FileProvider
-     * (see `file_paths.xml`, `cache-path`).
-     */
     val localView = LocalView.current
+    val graphicsLayer = rememberGraphicsLayer()
+
+    /**
+     * Shares a PNG snapshot of the page through the system share sheet.
+     *
+     * The page is rendered behind miuix's liquid-glass blur pipeline, which is
+     * entirely GPU-bound (RenderEffect / AGSL RuntimeShader). The two "obvious"
+     * screenshot paths both break on it: [androidx.core.view.drawToBitmap] forces
+     * the view tree onto a software canvas where those shaders can't render (the
+     * capture silently fails or throws), and [android.view.PixelCopy] from the
+     * activity window returns ERROR_UNKNOWN whenever the surface doesn't line up
+     * with the edge-to-edge decor view.
+     *
+     * The fix is to snapshot the page's own [GraphicsLayer] offscreen via
+     * [GraphicsLayer.toImageBitmap], which renders through a HardwareRenderer and
+     * so keeps every effect intact. The layer is recorded every frame by the
+     * [Modifier.drawWithContent] applied to the Scaffold below. The legacy paths
+     * stay as fallbacks so a capture still lands on devices where the GraphicsLayer
+     * snapshot is unavailable.
+     */
     val share: () -> Unit = {
         scope.launch {
+            val reasons = mutableListOf<String>()
+            val bitmap = captureShareBitmap(
+                graphicsLayer = graphicsLayer,
+                localView = localView,
+                activity = context as? Activity,
+                reasons = reasons,
+            )
+            Log.e("FoodShare", "capture result: ${if (bitmap != null) "${bitmap.width}x${bitmap.height} config=${bitmap.config}" else "null"} reasons=$reasons")
+            if (bitmap == null) {
+                val msg = reasons.joinToString(" | ").ifBlank { "未知原因" }
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(context, "截图失败: $msg", Toast.LENGTH_LONG).show()
+                }
+                return@launch
+            }
             try {
-                val bitmap = localView.drawToBitmap()
                 val file = File(context.cacheDir, "today_food_share.png")
                 withContext(Dispatchers.IO) {
+                    // GraphicsLayer.toImageBitmap() returns a Picture-backed
+                    // hardware bitmap whose Picture.draw re-executes the layer's
+                    // recorded commands. Drawing that bitmap onto a software
+                    // Canvas (the old approach) therefore re-runs the layer draw
+                    // on a software canvas and throws
+                    // "software rendering does not support RenderEffect" because
+                    // the recorded content includes miuix blur effects. Use
+                    // Bitmap.copy() instead, which is HardwareRenderer-backed and
+                    // never touches a software canvas. If copy itself fails, we
+                    // fall through to direct compress (which works for ordinary
+                    // ARGB_8888 bitmaps returned by PixelCopy).
+                    val writable = if (bitmap.config == Bitmap.Config.HARDWARE) {
+                        Log.e("FoodShare", "bitmap is HARDWARE, copying to ARGB_8888 via Bitmap.copy")
+                        runCatching {
+                            bitmap.copy(Bitmap.Config.ARGB_8888, false)
+                        }.onFailure {
+                            Log.e("FoodShare", "Bitmap.copy failed", it)
+                        }.getOrNull()
+                    } else bitmap
+                    if (writable == null) {
+                        throw IllegalStateException("无法转换 hardware bitmap 为可压缩格式")
+                    }
                     file.outputStream().use { out ->
-                        if (!bitmap.compress(Bitmap.CompressFormat.PNG, 100, out)) {
-                            throw IllegalStateException("PNG 压缩失败")
+                        if (!writable.compress(Bitmap.CompressFormat.PNG, 100, out)) {
+                            throw IllegalStateException("PNG 压缩失败 (config=${writable.config})")
                         }
                     }
+                    if (writable !== bitmap) writable.recycle()
                 }
                 val uri = FileProvider.getUriForFile(
                     context,
                     "${context.packageName}.fileprovider",
                     file
                 )
-                val intent = Intent(Intent.ACTION_SEND).apply {
+                Log.e("FoodShare", "uri=$uri, file.size=${file.length()}")
+                val shareIntent = Intent(Intent.ACTION_SEND).apply {
                     type = "image/png"
                     putExtra(Intent.EXTRA_STREAM, uri)
                     addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                 }
+                // LocalContext.current may not be an Activity under miuix's
+                // context wrappers, and startActivity() from a non-Activity
+                // context throws "Calling startActivity() from outside of an
+                // Activity". Use the Activity explicitly when available; the
+                // chooser itself also needs FLAG_ACTIVITY_NEW_TASK so it can be
+                // launched from a non-Activity context as a fallback.
+                val chooser = Intent.createChooser(shareIntent, shareTitle).apply {
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
+                val activity = context as? Activity
                 withContext(Dispatchers.Main) {
-                    context.startActivity(Intent.createChooser(intent, shareTitle))
+                    if (activity != null) {
+                        activity.startActivity(chooser)
+                    } else {
+                        context.startActivity(chooser)
+                    }
                 }
             } catch (e: Exception) {
-                e.printStackTrace()
+                Log.e("FoodShare", "share failed", e)
                 withContext(Dispatchers.Main) {
-                    Toast.makeText(context, shareFailedText, Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, "分享失败: ${e.javaClass.simpleName}: ${e.message}", Toast.LENGTH_LONG).show()
                 }
+            } finally {
+                bitmap.recycle()
             }
         }
     }
@@ -206,6 +285,16 @@ fun FoodScreen() {
     }
 
     Scaffold(
+        modifier = Modifier
+            .fillMaxSize()
+            .drawWithContent {
+                // Record the page into `graphicsLayer` every frame so a share can
+                // snapshot it offscreen, where the GPU blur effects still render.
+                graphicsLayer.record(size.toIntSize()) {
+                    this@drawWithContent.drawContent()
+                }
+                drawLayer(graphicsLayer)
+            },
         topBar = {
             SmallTopAppBar(
                 title = stringResource(id = R.string.tab_food),
@@ -564,4 +653,106 @@ private fun ResultCard(food: FoodItem) {
             }
         }
     }
+}
+
+/**
+ * Produces a PNG-ready bitmap of the page, trying the capture paths in order of
+ * fidelity: an offscreen [GraphicsLayer] snapshot first (keeps the GPU liquid-glass
+ * blur effects intact), then [PixelCopy] of the activity window, then a software
+ * [androidx.core.view.drawToBitmap] as a last resort. Each failure is logged under
+ * the `FoodShare` tag so a still-broken capture is diagnosable from logcat.
+ */
+private suspend fun captureShareBitmap(
+    graphicsLayer: GraphicsLayer,
+    localView: View,
+    activity: Activity?,
+    reasons: MutableList<String>,
+): Bitmap? {
+    // 1. PixelCopy of the activity window — PRIMARY path.
+    // Copies pixels straight off the window's Surface, so the GPU liquid-glass
+    // blur effects (RenderEffect / AGSL RuntimeShader from miuix) are already
+    // baked into the Surface and just get copied. No canvas is involved, so the
+    // "software rendering does not support RenderEffect" exception that kills
+    // GraphicsLayer.toImageBitmap() and View.drawToBitmap() cannot happen here.
+    // The bitmap MUST match the window's surface size, so use decorView (the
+    // window root) rather than the ComposeView, which may differ under edge-to-edge.
+    if (activity != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+        val decorView = activity.window.decorView
+        val width = decorView.width.coerceAtLeast(1)
+        val height = decorView.height.coerceAtLeast(1)
+        Log.e("FoodShare", "path1 PixelCopy decorView ${width}x${height}")
+        val copied = runCatching { pixelCopyWindow(activity, width, height, reasons) }
+            .onFailure {
+                Log.e("FoodShare", "path1 PixelCopy threw", it)
+                reasons += "PC:${it.javaClass.simpleName}:${it.message}"
+            }
+            .getOrNull()
+        if (copied != null) {
+            Log.e("FoodShare", "path1 ok ${copied.width}x${copied.height} config=${copied.config}")
+            return copied
+        }
+    }
+
+    // 2. GraphicsLayer offscreen snapshot — fallback. The bitmap returned here is
+    // Picture-backed (Bitmap.createBitmap(Picture) on API 28+), so it CANNOT be
+    // drawn onto a software Canvas — that re-executes graphicsLayer.draw() and
+    // throws "software rendering does not support RenderEffect" because the
+    // recorded content includes miuix blur effects. The caller must use
+    // Bitmap.copy() (HardwareRenderer-backed) instead of Canvas.drawBitmap() to
+    // convert it to a software config before PNG compression.
+    val layerSize = graphicsLayer.size
+    Log.e("FoodShare", "path2 GraphicsLayer.size=$layerSize")
+    val gpu = runCatching {
+        graphicsLayer.toImageBitmap().asAndroidBitmap()
+    }.onFailure {
+        Log.e("FoodShare", "path2 GraphicsLayer.toImageBitmap failed", it)
+        reasons += "GL:${it.javaClass.simpleName}:${it.message}"
+    }.getOrNull()
+    if (gpu != null) {
+        Log.e("FoodShare", "path2 ok ${gpu.width}x${gpu.height} config=${gpu.config}")
+        return gpu
+    }
+
+    // 3. drawToBitmap — last resort, will almost certainly throw on this page
+    // (software canvas + miuix RenderEffect), kept only so the failure is logged.
+    Log.e("FoodShare", "path3 drawToBitmap")
+    val fallback = runCatching { withContext(Dispatchers.Main) { localView.drawToBitmap() } }
+        .onFailure {
+            Log.e("FoodShare", "path3 drawToBitmap failed", it)
+            reasons += "DTB:${it.javaClass.simpleName}:${it.message}"
+        }
+        .getOrNull()
+    if (fallback != null) {
+        Log.e("FoodShare", "path3 ok ${fallback.width}x${fallback.height} config=${fallback.config}")
+    }
+    return fallback
+}
+
+/**
+ * Copies the activity window into a fresh [Bitmap] via [PixelCopy]. Returns `null`
+ * (and recycles the scratch bitmap) on any copy error rather than throwing, so the
+ * caller can fall through to the next capture strategy.
+ */
+private suspend fun pixelCopyWindow(
+    activity: Activity,
+    width: Int,
+    height: Int,
+    reasons: MutableList<String>,
+): Bitmap? = suspendCancellableCoroutine { cont ->
+    val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+    PixelCopy.request(activity.window, bitmap, { result ->
+        Log.e("FoodShare", "PixelCopy result=$result (SUCCESS=${PixelCopy.SUCCESS})")
+        if (result != PixelCopy.SUCCESS) {
+            reasons += "PC:result=$result"
+        }
+        if (cont.isActive) {
+            if (result == PixelCopy.SUCCESS) {
+                cont.resume(bitmap, null)
+            } else {
+                bitmap.recycle()
+                cont.resume(null, null)
+            }
+        }
+    }, Handler(Looper.getMainLooper()))
+    cont.invokeOnCancellation { bitmap.recycle() }
 }

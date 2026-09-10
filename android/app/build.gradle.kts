@@ -128,7 +128,7 @@ android {
 
     defaultConfig {
         applicationId = "com.chronie.gift"
-        minSdk = 24
+        minSdk = 26
         // Android 17 (API 37, CINNAMON_BUN) enables Local Network Protection (LNP) by
         // default. Any LAN access (this app talks to the event server at
         // http://192.168.10.9:3002) now requires ACCESS_LOCAL_NETWORK — see
